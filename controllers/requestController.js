@@ -150,7 +150,7 @@ export async function updateRequestStatus(req, res) {
     }
 
     const db = await getDb();
-    const [rows] = await db.execute('SELECT id, status FROM blood_requests WHERE id = ?', [
+    const [rows] = await db.execute('SELECT id, status, blood_group, units_required FROM blood_requests WHERE id = ?', [
       requestId,
     ]);
 
@@ -159,6 +159,21 @@ export async function updateRequestStatus(req, res) {
     }
 
     const oldStatus = rows[0].status;
+    const bloodGroup = rows[0].blood_group;
+    const unitsRequired = Number(rows[0].units_required || 0);
+
+    if (oldStatus !== 'Fulfilled' && nextStatus === 'Fulfilled') {
+      await db.execute(
+        'UPDATE blood_inventory SET units_available = CASE WHEN units_available >= ? THEN units_available - ? ELSE 0 END WHERE blood_group = ?',
+        [unitsRequired, unitsRequired, bloodGroup]
+      );
+    } else if (oldStatus === 'Fulfilled' && nextStatus !== 'Fulfilled') {
+      await db.execute(
+        'UPDATE blood_inventory SET units_available = units_available + ? WHERE blood_group = ?',
+        [unitsRequired, bloodGroup]
+      );
+    }
+
     await db.execute(
       'UPDATE blood_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [nextStatus, requestId]
