@@ -1,0 +1,6 @@
+{
+  "name": "LifeFlow",
+  "description": "Blood Bank Management System designed for India with donor registration, blood requests, demonstration inventory, and secure admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

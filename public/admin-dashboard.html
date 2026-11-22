@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard – LifeFlow (India)</title>
+  <meta name="description" content="Administrator dashboard to manage donors, patients, blood requests, and blood inventory in LifeFlow." />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/index.html" class="brand-link" aria-label="LifeFlow Home">
+        <svg class="brand-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 3C16 3 6 14.2 6 20.5C6 26.02 10.48 30 16 30C21.52 30 26 26.02 26 20.5C26 14.2 16 3 16 3Z" fill="#C81E1E" />
+          <path d="M16 14V24M11 19H21" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+        <span>LifeFlow</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="/index.html" class="nav-link">Home</a>
+        <a href="/about.html" class="nav-link">About</a>
+        <a href="/availability.html" class="nav-link">Blood Availability</a>
+        <a href="/donate.html" class="nav-link">Donate Blood</a>
+        <a href="/request.html" class="nav-link">Request Blood</a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" id="logoutBtn" class="btn btn-danger-outline btn-sm">Logout</button>
+      </div>
+
+      <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobileDrawer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="mobileDrawer" class="mobile-drawer" aria-label="Mobile Navigation">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/about.html" class="nav-link">About</a>
+      <a href="/availability.html" class="nav-link">Blood Availability</a>
+      <a href="/donate.html" class="nav-link">Donate Blood</a>
+      <a href="/request.html" class="nav-link">Request Blood</a>
+      <button type="button" onclick="document.getElementById('logoutBtn').click()" class="btn btn-danger-outline btn-sm" style="margin-top: 6px;">Logout</button>
+    </div>
+  </header>
+
+  <main id="adminDashboardRoot">
+    <section class="page-banner">
+      <div class="container dashboard-top-bar">
+        <div>
+          <h1>Admin Dashboard</h1>
+          <p>Signed in as <strong id="adminWelcomeName">Administrator</strong></p>
+        </div>
+        <a href="/availability.html" class="btn btn-outline btn-sm">View Public Availability Page</a>
+      </div>
+    </section>
+
+    <section class="page-section">
+      <div class="container">
+        <div id="dashboardAlert" class="alert hidden" role="status"></div>
+
+        <!-- Real Database Statistics -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Donors</div>
+            <div id="statTotalDonors" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Registered Patients</div>
+            <div id="statTotalPatients" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Requests</div>
+            <div id="statTotalRequests" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pending Requests</div>
+            <div id="statPendingRequests" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Available Blood Units</div>
+            <div id="statAvailableUnits" class="stat-value">0</div>
+          </div>
+        </div>
+
+        <!-- Management Tabs -->
+        <div class="tab-bar" role="tablist" aria-label="Admin Management Sections">
+          <button type="button" class="tab-btn active" data-tab="panelRequests">Manage Blood Requests</button>
+          <button type="button" class="tab-btn" data-tab="panelDonors">Manage Donors</button>
+          <button type="button" class="tab-btn" data-tab="panelPatients">Manage Patients</button>
+          <button type="button" class="tab-btn" data-tab="panelStock">Manage Blood Stock</button>
+          <button type="button" class="tab-btn" data-tab="panelHistory">Request History</button>
+        </div>
+
+        <!-- 1. Manage Blood Requests -->
+        <section id="panelRequests" class="tab-panel">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Patient &amp; Requester</th>
+                  <th>Mobile (+91)</th>
+                  <th>Blood &amp; Units</th>
+                  <th>Hospital &amp; Location</th>
+                  <th>Urgency</th>
+                  <th>Status</th>
+                  <th>Update Status</th>
+                </tr>
+              </thead>
+              <tbody id="requestsTableBody">
+                <tr><td colspan="8" class="empty-state">Loading blood requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 2. Manage Donors -->
+        <section id="panelDonors" class="tab-panel hidden">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Full Name</th>
+                  <th>Age &amp; Gender</th>
+                  <th>Blood Group</th>
+                  <th>Contact (+91 &amp; Email)</th>
+                  <th>Indian Address &amp; PIN</th>
+                  <th>Registration Type</th>
+                  <th>Account Action / Date</th>
+                </tr>
+              </thead>
+              <tbody id="donorsTableBody">
+                <tr><td colspan="8" class="empty-state">Loading registered donors...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 3. Manage Patients -->
+        <section id="panelPatients" class="tab-panel hidden">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>Full Name</th>
+                  <th>Mobile (+91)</th>
+                  <th>Email</th>
+                  <th>Requests Submitted</th>
+                  <th>Account Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="patientsTableBody">
+                <tr><td colspan="7" class="empty-state">Loading patient accounts...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 4. Manage Blood Stock -->
+        <section id="panelStock" class="tab-panel hidden">
+          <div class="notice-banner" style="margin-bottom: 18px;">
+            <div>
+              <div class="notice-title">Sample Demonstration Inventory – Not Live Hospital Stock.</div>
+              <div class="notice-sub">Changes saved here update the database and immediately reflect on Blood Availability.</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Blood Group</th>
+                  <th>Current Units</th>
+                  <th>Last Updated (IST)</th>
+                  <th>Update Stock</th>
+                </tr>
+              </thead>
+              <tbody id="stockTableBody">
+                <tr><td colspan="4" class="empty-state">Loading blood stock...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 5. Request History Audit Log -->
+        <section id="panelHistory" class="tab-panel hidden">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Request ID</th>
+                  <th>Patient &amp; Group</th>
+                  <th>Status Change</th>
+                  <th>Updated By</th>
+                  <th>Remarks</th>
+                  <th>Timestamp (IST)</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <tr><td colspan="6" class="empty-state">Loading request history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div><strong>LifeFlow</strong> · Blood Bank Management System (India)</div>
+      <div class="footer-links">
+        <a href="/index.html">Home</a>
+        <a href="/availability.html">Availability</a>
+        <a href="/login.html">Role Login Portal</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/script.js"></script>
+</body>
+</html>

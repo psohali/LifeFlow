@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – LifeFlow Blood Bank Management System (India)</title>
+  <meta name="description" content="Select your LifeFlow role to sign in or register as a Donor, Patient, or Administrator." />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/index.html" class="brand-link" aria-label="LifeFlow Home">
+        <svg class="brand-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 3C16 3 6 14.2 6 20.5C6 26.02 10.48 30 16 30C21.52 30 26 26.02 26 20.5C26 14.2 16 3 16 3Z" fill="#C81E1E" />
+          <path d="M16 14V24M11 19H21" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+        <span>LifeFlow</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="/index.html" class="nav-link">Home</a>
+        <a href="/about.html" class="nav-link">About</a>
+        <a href="/availability.html" class="nav-link">Blood Availability</a>
+        <a href="/donate.html" class="nav-link">Donate Blood</a>
+        <a href="/request.html" class="nav-link">Request Blood</a>
+      </nav>
+
+      <div class="header-actions">
+        <a href="/login.html" class="btn btn-primary btn-sm">Login</a>
+      </div>
+
+      <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobileDrawer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="mobileDrawer" class="mobile-drawer" aria-label="Mobile Navigation">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/about.html" class="nav-link">About</a>
+      <a href="/availability.html" class="nav-link">Blood Availability</a>
+      <a href="/donate.html" class="nav-link">Donate Blood</a>
+      <a href="/request.html" class="nav-link">Request Blood</a>
+      <a href="/login.html" class="btn btn-primary btn-sm" style="margin-top: 6px;">Login</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-banner">
+      <div class="container">
+        <h1>LifeFlow Role Login Portal</h1>
+        <p>
+          Choose your role below to sign in or create an account. Each portal provides dedicated
+          features and secure role-based access.
+        </p>
+      </div>
+    </section>
+
+    <section class="page-section">
+      <div class="container">
+        <div id="activeSessionBanner" class="notice-banner hidden">
+          <div>
+            <div class="notice-title" id="activeSessionText">You are currently signed in.</div>
+            <div class="notice-sub">Continue to your active dashboard or choose a role portal below.</div>
+          </div>
+          <a id="activeSessionDashLink" href="/index.html" class="btn btn-primary btn-sm">Open Dashboard</a>
+        </div>
+
+        <div class="role-cards-grid">
+          <article class="role-card">
+            <div>
+              <div class="service-icon-box" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                </svg>
+              </div>
+              <h2>Donor Login &amp; Registration</h2>
+              <p>
+                Sign in with your registered email or +91 mobile number to manage your donor
+                profile and view matching hospital blood requests.
+              </p>
+            </div>
+            <a href="/donor-login.html" class="btn btn-primary btn-sm" style="width: fit-content;">
+              Continue as Donor
+            </a>
+          </article>
+
+          <article class="role-card">
+            <div>
+              <div class="service-icon-box" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                </svg>
+              </div>
+              <h2>Patient / Blood Requester</h2>
+              <p>
+                Register or sign in with your email or +91 mobile number to submit blood requests
+                and track real-time request statuses privately.
+              </p>
+            </div>
+            <a href="/patient-login.html" class="btn btn-primary btn-sm" style="width: fit-content;">
+              Continue as Patient
+            </a>
+          </article>
+
+          <article class="role-card">
+            <div>
+              <div class="service-icon-box" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+              <h2>Administrator Login</h2>
+              <p>
+                Secure management portal for managing donor and patient accounts, reviewing blood
+                requests, and updating blood stock.
+              </p>
+            </div>
+            <a href="/admin-login.html" class="btn btn-outline btn-sm" style="width: fit-content;">
+              Continue as Administrator
+            </a>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div><strong>LifeFlow</strong> · Blood Bank Management System (India)</div>
+      <div class="footer-links">
+        <a href="/donor-login.html">Donor Login</a>
+        <a href="/patient-login.html">Patient Login</a>
+        <a href="/admin-login.html">Admin Login</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/script.js"></script>
+</body>
+</html>

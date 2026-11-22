@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Request Blood – LifeFlow (India)</title>
+  <meta name="description" content="Submit a patient blood request for an Indian hospital through LifeFlow." />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/index.html" class="brand-link" aria-label="LifeFlow Home">
+        <svg class="brand-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 3C16 3 6 14.2 6 20.5C6 26.02 10.48 30 16 30C21.52 30 26 26.02 26 20.5C26 14.2 16 3 16 3Z" fill="#C81E1E" />
+          <path d="M16 14V24M11 19H21" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+        <span>LifeFlow</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="/index.html" class="nav-link">Home</a>
+        <a href="/about.html" class="nav-link">About</a>
+        <a href="/availability.html" class="nav-link">Blood Availability</a>
+        <a href="/donate.html" class="nav-link">Donate Blood</a>
+        <a href="/request.html" class="nav-link active">Request Blood</a>
+      </nav>
+
+      <div class="header-actions">
+        <a href="/login.html" class="btn btn-primary btn-sm">Login</a>
+      </div>
+
+      <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobileDrawer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="mobileDrawer" class="mobile-drawer" aria-label="Mobile Navigation">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/about.html" class="nav-link">About</a>
+      <a href="/availability.html" class="nav-link">Blood Availability</a>
+      <a href="/donate.html" class="nav-link">Donate Blood</a>
+      <a href="/request.html" class="nav-link active">Request Blood</a>
+      <a href="/login.html" class="btn btn-primary btn-sm" style="margin-top: 6px;">Login</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-banner">
+      <div class="container">
+        <h1>Request Blood</h1>
+        <p>
+          Submit a blood requirement for a patient admitted at an Indian hospital. Every new
+          submission is saved with status Pending for administrator verification.
+        </p>
+      </div>
+    </section>
+
+    <section class="page-section">
+      <div class="container form-layout">
+        <div class="surface-card">
+          <div id="requestAlert" class="alert hidden" role="status"></div>
+
+          <form id="requestForm" class="form-grid" novalidate>
+            <div class="form-group">
+              <label for="patient_name" class="form-label">Patient Name <span class="required-star">*</span></label>
+              <input type="text" id="patient_name" name="patient_name" class="form-input" placeholder="e.g., Rajesh Verma" required />
+            </div>
+
+            <div class="form-group">
+              <label for="requester_name" class="form-label">Requester Name <span class="required-star">*</span></label>
+              <input type="text" id="requester_name" name="requester_name" class="form-input" placeholder="e.g., Priya Verma" required />
+            </div>
+
+            <div class="form-group">
+              <label for="phone" class="form-label">Contact Number (+91) <span class="required-star">*</span></label>
+              <div class="phone-input-group">
+                <span class="phone-prefix">+91</span>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  class="form-input"
+                  inputmode="numeric"
+                  maxlength="10"
+                  placeholder="9811223344"
+                  required
+                />
+              </div>
+              <span class="field-hint">10-digit Indian mobile starting with 6, 7, 8, or 9.</span>
+            </div>
+
+            <div class="form-group">
+              <label for="blood_group" class="form-label">Blood Group Required <span class="required-star">*</span></label>
+              <select id="blood_group" name="blood_group" class="form-select" required>
+                <option value="">Select Blood Group</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="units_required" class="form-label">Units Required <span class="required-star">*</span></label>
+              <input type="number" id="units_required" name="units_required" class="form-input" min="1" max="20" placeholder="e.g., 2" required />
+            </div>
+
+            <div class="form-group">
+              <label for="urgency" class="form-label">Urgency Level <span class="required-star">*</span></label>
+              <select id="urgency" name="urgency" class="form-select" required>
+                <option value="Normal">Normal</option>
+                <option value="Urgent">Urgent</option>
+                <option value="Emergency">Emergency</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="hospital_name" class="form-label">Hospital Name <span class="required-star">*</span></label>
+              <input type="text" id="hospital_name" name="hospital_name" class="form-input" placeholder="e.g., AIIMS New Delhi / Apollo Hospital, Chennai" required />
+            </div>
+
+            <div class="form-group full-width">
+              <label for="location" class="form-label">Hospital Location / City <span class="required-star">*</span></label>
+              <input type="text" id="location" name="location" class="form-input" placeholder="e.g., Ansari Nagar, New Delhi" required />
+            </div>
+
+            <div class="form-group full-width" style="margin-top: 8px;">
+              <button type="submit" id="requestSubmitBtn" class="btn btn-primary">
+                Submit Blood Request
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <aside class="surface-card sidebar-notes">
+          <h3>Request Workflow</h3>
+          <p>
+            Once submitted, every blood request is stored in the database with an initial status of
+            <strong>Pending</strong>.
+          </p>
+          <ul class="info-list">
+            <li>Blood bank administrators review urgency and required blood group.</li>
+            <li>Status updates to <strong>Approved</strong>, <strong>Rejected</strong>, or <strong>Fulfilled</strong> are recorded in the audit history.</li>
+            <li>For demonstration stock quantities, check the Blood Availability page.</li>
+          </ul>
+
+          <hr class="sidebar-divider" />
+
+          <h3>Track Your Request Status</h3>
+          <p>
+            Register or sign in as a Patient / Blood Requester to submit requests from your account
+            and track status updates in real time.
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <a href="/patient-login.html" class="btn btn-outline btn-sm">Patient Login</a>
+            <a href="/availability.html" class="btn btn-outline btn-sm">Check Stock</a>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div><strong>LifeFlow</strong> · Blood Bank Management System (India)</div>
+      <div class="footer-links">
+        <a href="/donor-login.html">Donor Login</a>
+        <a href="/patient-login.html">Patient Login</a>
+        <a href="/admin-login.html">Admin Login</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/script.js"></script>
+</body>
+</html>

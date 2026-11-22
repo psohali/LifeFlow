@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LifeFlow – Blood Bank Management System (India)</title>
+  <meta name="description" content="LifeFlow is an Indian Blood Bank Management System connecting voluntary blood donors, hospital requests, and blood inventory." />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/index.html" class="brand-link" aria-label="LifeFlow Home">
+        <svg class="brand-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 3C16 3 6 14.2 6 20.5C6 26.02 10.48 30 16 30C21.52 30 26 26.02 26 20.5C26 14.2 16 3 16 3Z" fill="#C81E1E" />
+          <path d="M16 14V24M11 19H21" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+        <span>LifeFlow</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="/index.html" class="nav-link active">Home</a>
+        <a href="/about.html" class="nav-link">About</a>
+        <a href="/availability.html" class="nav-link">Blood Availability</a>
+        <a href="/donate.html" class="nav-link">Donate Blood</a>
+        <a href="/request.html" class="nav-link">Request Blood</a>
+      </nav>
+
+      <div class="header-actions">
+        <a href="/login.html" class="btn btn-primary btn-sm">Login</a>
+      </div>
+
+      <button
+        type="button"
+        id="mobileMenuBtn"
+        class="mobile-menu-btn"
+        aria-label="Toggle navigation menu"
+        aria-expanded="false"
+        aria-controls="mobileDrawer"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="mobileDrawer" class="mobile-drawer" aria-label="Mobile Navigation">
+      <a href="/index.html" class="nav-link active">Home</a>
+      <a href="/about.html" class="nav-link">About</a>
+      <a href="/availability.html" class="nav-link">Blood Availability</a>
+      <a href="/donate.html" class="nav-link">Donate Blood</a>
+      <a href="/request.html" class="nav-link">Request Blood</a>
+      <a href="/login.html" class="btn btn-primary btn-sm" style="margin-top: 6px;">Login</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero-section">
+      <div class="container hero-grid">
+        <div>
+          <p class="hero-kicker">Voluntary Blood Bank Portal · India</p>
+          <h1 class="hero-title">Every Drop Counts. Every Donor Matters.</h1>
+          <p class="hero-subtitle">
+            LifeFlow connects voluntary blood donors across Indian cities with patients and
+            hospitals in timely need. Register as a donor, submit a blood request, or view our
+            demonstration inventory.
+          </p>
+          <div class="hero-actions">
+            <a href="/donate.html" class="btn btn-primary">Become a Donor</a>
+            <a href="/request.html" class="btn btn-outline">Request Blood</a>
+          </div>
+        </div>
+
+        <div class="hero-media">
+          <img
+            src="/images/hero-blood-centre.jpg"
+            alt="Voluntary blood donor at a bright, clean Indian blood donation centre"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <div class="hero-media-fallback">
+            <svg width="56" height="56" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <path d="M16 3C16 3 6 14.2 6 20.5C6 26.02 10.48 30 16 30C21.52 30 26 26.02 26 20.5C26 14.2 16 3 16 3Z" fill="#C81E1E" />
+              <path d="M16 14V24M11 19H21" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+            <strong>LifeFlow Blood Donation &amp; Coordination</strong>
+            <span>Safe, voluntary blood donation across India</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="services-section" aria-labelledby="servicesHeading">
+      <div class="container">
+        <div class="section-header">
+          <h2 id="servicesHeading" class="section-title">How LifeFlow Helps</h2>
+          <p class="section-desc">
+            Simple, structured blood bank coordination for donors, patients, and administrators.
+          </p>
+        </div>
+
+        <div class="services-grid">
+          <article class="service-card">
+            <div>
+              <div class="service-icon-box" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                </svg>
+              </div>
+              <h3>Donate Blood</h3>
+              <p>
+                Register your details, blood group, and Indian residential address to join the
+                voluntary donor registry for your city and state.
+              </p>
+            </div>
+            <a href="/donate.html" class="service-link">Register as a Donor &rarr;</a>
+          </article>
+
+          <article class="service-card">
+            <div>
+              <div class="service-icon-box" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                </svg>
+              </div>
+              <h3>Request Blood</h3>
+              <p>
+                Submit a hospital blood request with patient details, units required, and urgency
+                level for review by blood bank administrators.
+              </p>
+            </div>
+            <a href="/request.html" class="service-link">Submit a Request &rarr;</a>
+          </article>
+
+          <article class="service-card">
+            <div>
+              <div class="service-icon-box" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 11l3 3L22 4" />
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+              </div>
+              <h3>Check Availability</h3>
+              <p>
+                Inspect sample demonstration blood stock across all eight blood groups (A+, A-, B+,
+                B-, AB+, AB-, O+, O-) updated directly from the database.
+              </p>
+            </div>
+            <a href="/availability.html" class="service-link">View Availability &rarr;</a>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <strong>LifeFlow</strong> · Blood Bank Management System (India)
+      </div>
+      <div class="footer-links">
+        <a href="/donor-login.html">Donor Login</a>
+        <a href="/patient-login.html">Patient Login</a>
+        <a href="/admin-login.html">Admin Login</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/script.js"></script>
+</body>
+</html>

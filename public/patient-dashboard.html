@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient Dashboard – LifeFlow (India)</title>
+  <meta name="description" content="Submit blood requests and privately track your request statuses in LifeFlow." />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/index.html" class="brand-link" aria-label="LifeFlow Home">
+        <svg class="brand-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 3C16 3 6 14.2 6 20.5C6 26.02 10.48 30 16 30C21.52 30 26 26.02 26 20.5C26 14.2 16 3 16 3Z" fill="#C81E1E" />
+          <path d="M16 14V24M11 19H21" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+        <span>LifeFlow</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="/index.html" class="nav-link">Home</a>
+        <a href="/about.html" class="nav-link">About</a>
+        <a href="/availability.html" class="nav-link">Blood Availability</a>
+        <a href="/donate.html" class="nav-link">Donate Blood</a>
+        <a href="/request.html" class="nav-link">Request Blood</a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" id="logoutBtn" class="btn btn-danger-outline btn-sm">Logout</button>
+      </div>
+
+      <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobileDrawer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="mobileDrawer" class="mobile-drawer" aria-label="Mobile Navigation">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/about.html" class="nav-link">About</a>
+      <a href="/availability.html" class="nav-link">Blood Availability</a>
+      <a href="/donate.html" class="nav-link">Donate Blood</a>
+      <a href="/request.html" class="nav-link">Request Blood</a>
+      <button type="button" onclick="document.getElementById('logoutBtn').click()" class="btn btn-danger-outline btn-sm" style="margin-top: 6px;">Logout</button>
+    </div>
+  </header>
+
+  <main id="patientDashboardRoot">
+    <section class="page-banner">
+      <div class="container dashboard-top-bar">
+        <div>
+          <h1>Patient / Requester Dashboard</h1>
+          <p>Signed in as <strong id="patientWelcomeName">Patient</strong></p>
+        </div>
+        <a href="/availability.html" class="btn btn-outline btn-sm">Check Blood Availability</a>
+      </div>
+    </section>
+
+    <section class="page-section">
+      <div class="container">
+        <div id="patientDashAlert" class="alert hidden" role="status"></div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">My Total Requests</div>
+            <div id="patientTotalRequests" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pending Requests</div>
+            <div id="patientPendingCount" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Approved / Fulfilled</div>
+            <div id="patientFulfilledCount" class="stat-value">0</div>
+          </div>
+        </div>
+
+        <div class="tab-bar" role="tablist" aria-label="Patient Dashboard Sections">
+          <button type="button" class="tab-btn active" data-tab="patientPanelRequests">My Blood Requests</button>
+          <button type="button" class="tab-btn" data-tab="patientPanelNewRequest">Submit New Blood Request</button>
+          <button type="button" class="tab-btn" data-tab="patientPanelProfile">My Profile</button>
+        </div>
+
+        <!-- 1. Own Blood Requests List -->
+        <section id="patientPanelRequests" class="tab-panel">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Patient &amp; Requester</th>
+                  <th>Blood Group &amp; Units</th>
+                  <th>Hospital &amp; Location</th>
+                  <th>Urgency</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody id="patientRequestsBody">
+                <tr><td colspan="7" class="empty-state">Loading your blood requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="patientRequestHistoryPanel" class="surface-card hidden" style="margin-top: 24px;">
+            <h3 id="patientHistoryTitle" style="font-size: 1.1rem; margin-bottom: 14px;">Request Status Timeline</h3>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Status Transition</th>
+                    <th>Remarks</th>
+                    <th>Timestamp (IST)</th>
+                  </tr>
+                </thead>
+                <tbody id="patientHistoryBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Submit New Blood Request -->
+        <section id="patientPanelNewRequest" class="tab-panel surface-card hidden">
+          <h2 style="font-size: 1.25rem; margin-bottom: 18px;">Submit a Blood Request</h2>
+          <form id="patientRequestForm" class="form-grid" novalidate>
+            <div class="form-group">
+              <label for="pt_req_patient" class="form-label">Patient Name <span class="required-star">*</span></label>
+              <input type="text" id="pt_req_patient" name="patient_name" class="form-input" placeholder="e.g., Suresh Nair" required />
+            </div>
+
+            <div class="form-group">
+              <label for="pt_req_requester" class="form-label">Requester Name <span class="required-star">*</span></label>
+              <input type="text" id="pt_req_requester" name="requester_name" class="form-input" required />
+            </div>
+
+            <div class="form-group">
+              <label for="pt_req_phone" class="form-label">Contact Mobile (+91) <span class="required-star">*</span></label>
+              <div class="phone-input-group">
+                <span class="phone-prefix">+91</span>
+                <input type="tel" id="pt_req_phone" name="phone" class="form-input" inputmode="numeric" maxlength="10" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="pt_req_group" class="form-label">Blood Group Required <span class="required-star">*</span></label>
+              <select id="pt_req_group" name="blood_group" class="form-select" required>
+                <option value="">Select Blood Group</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="pt_req_units" class="form-label">Units Required <span class="required-star">*</span></label>
+              <input type="number" id="pt_req_units" name="units_required" class="form-input" min="1" max="20" placeholder="e.g., 2" required />
+            </div>
+
+            <div class="form-group">
+              <label for="pt_req_urgency" class="form-label">Urgency <span class="required-star">*</span></label>
+              <select id="pt_req_urgency" name="urgency" class="form-select" required>
+                <option value="Normal">Normal</option>
+                <option value="Urgent">Urgent</option>
+                <option value="Emergency">Emergency</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="pt_req_hospital" class="form-label">Hospital Name <span class="required-star">*</span></label>
+              <input type="text" id="pt_req_hospital" name="hospital_name" class="form-input" placeholder="e.g., Apollo Hospital, Chennai" required />
+            </div>
+
+            <div class="form-group">
+              <label for="pt_req_location" class="form-label">Location / City <span class="required-star">*</span></label>
+              <input type="text" id="pt_req_location" name="location" class="form-input" placeholder="e.g., Greams Road, Chennai" required />
+            </div>
+
+            <div class="form-group full-width" style="margin-top: 6px;">
+              <button type="submit" id="patientRequestBtn" class="btn btn-primary">Submit Blood Request</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- 3. Update Permitted Profile -->
+        <section id="patientPanelProfile" class="tab-panel surface-card hidden">
+          <h2 style="font-size: 1.25rem; margin-bottom: 18px;">Update Profile Information</h2>
+          <form id="patientProfileForm" class="form-grid" style="max-width: 520px; grid-template-columns: 1fr;" novalidate>
+            <div class="form-group">
+              <label for="pt_prof_name" class="form-label">Full Name <span class="required-star">*</span></label>
+              <input type="text" id="pt_prof_name" name="full_name" class="form-input" required />
+            </div>
+
+            <div class="form-group">
+              <label for="pt_prof_phone" class="form-label">Mobile Number (+91) <span class="required-star">*</span></label>
+              <div class="phone-input-group">
+                <span class="phone-prefix">+91</span>
+                <input type="tel" id="pt_prof_phone" name="phone" class="form-input" inputmode="numeric" maxlength="10" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="pt_prof_email" class="form-label">Registered Email (Read-Only)</label>
+              <input type="email" id="pt_prof_email" name="email" class="form-input" readonly style="background: var(--bg-muted);" />
+            </div>
+
+            <div class="form-group" style="margin-top: 6px;">
+              <button type="submit" id="patientSaveProfileBtn" class="btn btn-primary">Save Profile</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div><strong>LifeFlow</strong> · Blood Bank Management System (India)</div>
+      <div class="footer-links">
+        <a href="/index.html">Home</a>
+        <a href="/availability.html">Availability</a>
+        <a href="/login.html">Role Login Portal</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/script.js"></script>
+</body>
+</html>

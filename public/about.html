@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About – LifeFlow Blood Bank Management System (India)</title>
+  <meta name="description" content="Learn about LifeFlow, voluntary blood donation in India, and how donor registrations and hospital requests are coordinated." />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/index.html" class="brand-link" aria-label="LifeFlow Home">
+        <svg class="brand-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 3C16 3 6 14.2 6 20.5C6 26.02 10.48 30 16 30C21.52 30 26 26.02 26 20.5C26 14.2 16 3 16 3Z" fill="#C81E1E" />
+          <path d="M16 14V24M11 19H21" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+        <span>LifeFlow</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="/index.html" class="nav-link">Home</a>
+        <a href="/about.html" class="nav-link active">About</a>
+        <a href="/availability.html" class="nav-link">Blood Availability</a>
+        <a href="/donate.html" class="nav-link">Donate Blood</a>
+        <a href="/request.html" class="nav-link">Request Blood</a>
+      </nav>
+
+      <div class="header-actions">
+        <a href="/login.html" class="btn btn-primary btn-sm">Login</a>
+      </div>
+
+      <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobileDrawer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="mobileDrawer" class="mobile-drawer" aria-label="Mobile Navigation">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/about.html" class="nav-link active">About</a>
+      <a href="/availability.html" class="nav-link">Blood Availability</a>
+      <a href="/donate.html" class="nav-link">Donate Blood</a>
+      <a href="/request.html" class="nav-link">Request Blood</a>
+      <a href="/login.html" class="btn btn-primary btn-sm" style="margin-top: 6px;">Login</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-banner">
+      <div class="container">
+        <h1>About LifeFlow</h1>
+        <p>
+          An academic Blood Bank Management System built for India to streamline voluntary donor
+          registration, blood request tracking, and stock administration.
+        </p>
+      </div>
+    </section>
+
+    <section class="page-section">
+      <div class="container">
+        <div class="about-grid">
+          <article class="surface-card about-card">
+            <h2>What Is LifeFlow?</h2>
+            <p>
+              LifeFlow is a web-based Blood Bank Management System tailored for Indian healthcare
+              workflows. It provides a unified portal where Indian citizens can register as
+              voluntary blood donors and families or hospital coordinators can raise blood
+              requests using Indian mobile numbers, PIN codes, and state records.
+            </p>
+            <p>
+              All donor records, blood requests, and blood unit counts are stored in a relational
+              MySQL database rather than static files.
+            </p>
+          </article>
+
+          <article class="surface-card about-card">
+            <h2>Importance of Voluntary Blood Donation</h2>
+            <p>
+              Every day across India, patients undergoing surgery, accident trauma care, childbirth,
+              thalassemia treatment, and oncology therapy require safe blood components. Blood cannot
+              be manufactured artificially—only voluntary donors make safe transfusions possible.
+            </p>
+            <p>
+              Voluntary donation in India is completely non-remunerated (₹0 donor payment), and a
+              single donation of one unit can help save up to three lives when separated into red
+              cells, plasma, and platelets.
+            </p>
+          </article>
+
+          <article class="surface-card about-card">
+            <h2>How LifeFlow Connects Donors &amp; Requests</h2>
+            <ul class="info-list">
+              <li>
+                <strong>Donor Registration:</strong> Eligible individuals (aged 18–65) submit their
+                blood group, +91 mobile number, and Indian residential address.
+              </li>
+              <li>
+                <strong>Blood Request Submission:</strong> Requesters enter patient details,
+                required units, hospital name (such as AIIMS New Delhi or Apollo Chennai), and
+                urgency level. New requests start as <em>Pending</em>.
+              </li>
+              <li>
+                <strong>Administrative Review:</strong> Authenticated blood bank administrators
+                review requests, update status (Approved, Rejected, or Fulfilled), log remarks,
+                and maintain accurate stock levels.
+              </li>
+            </ul>
+          </article>
+
+          <article class="surface-card about-card">
+            <h2>Purpose of This Project</h2>
+            <p>
+              LifeFlow is developed as a clean, practical second-year B.Tech CSE full-stack
+              project demonstrating structured HTML, CSS, and JavaScript frontend development
+              paired with a Node.js, Express.js, and MySQL backend.
+            </p>
+            <p>
+              Note: The stock counts shown on the Blood Availability page are sample demonstration
+              quantities for educational evaluation and do not represent live Indian hospital stock.
+            </p>
+          </article>
+        </div>
+
+        <div class="hero-actions">
+          <a href="/donate.html" class="btn btn-primary">Become a Donor</a>
+          <a href="/availability.html" class="btn btn-outline">Check Sample Availability</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div><strong>LifeFlow</strong> · Blood Bank Management System (India)</div>
+      <div class="footer-links">
+        <a href="/donor-login.html">Donor Login</a>
+        <a href="/patient-login.html">Patient Login</a>
+        <a href="/admin-login.html">Admin Login</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/script.js"></script>
+</body>
+</html>

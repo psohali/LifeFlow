@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Donate Blood – LifeFlow (India)</title>
+  <meta name="description" content="Register as a voluntary blood donor in India with LifeFlow using your +91 mobile number and Indian PIN code." />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/index.html" class="brand-link" aria-label="LifeFlow Home">
+        <svg class="brand-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 3C16 3 6 14.2 6 20.5C6 26.02 10.48 30 16 30C21.52 30 26 26.02 26 20.5C26 14.2 16 3 16 3Z" fill="#C81E1E" />
+          <path d="M16 14V24M11 19H21" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+        <span>LifeFlow</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="/index.html" class="nav-link">Home</a>
+        <a href="/about.html" class="nav-link">About</a>
+        <a href="/availability.html" class="nav-link">Blood Availability</a>
+        <a href="/donate.html" class="nav-link active">Donate Blood</a>
+        <a href="/request.html" class="nav-link">Request Blood</a>
+      </nav>
+
+      <div class="header-actions">
+        <a href="/login.html" class="btn btn-primary btn-sm">Login</a>
+      </div>
+
+      <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobileDrawer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="mobileDrawer" class="mobile-drawer" aria-label="Mobile Navigation">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/about.html" class="nav-link">About</a>
+      <a href="/availability.html" class="nav-link">Blood Availability</a>
+      <a href="/donate.html" class="nav-link active">Donate Blood</a>
+      <a href="/request.html" class="nav-link">Request Blood</a>
+      <a href="/login.html" class="btn btn-primary btn-sm" style="margin-top: 6px;">Login</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-banner">
+      <div class="container">
+        <h1>Donate Blood – Donor Registration</h1>
+        <p>
+          Complete the Indian voluntary donor registration form below. All details are securely
+          saved to our database.
+        </p>
+      </div>
+    </section>
+
+    <section class="page-section">
+      <div class="container form-layout">
+        <div class="surface-card">
+          <div id="donorAlert" class="alert hidden" role="status"></div>
+
+          <form id="donorForm" class="form-grid" novalidate>
+            <div class="form-group full-width">
+              <label for="full_name" class="form-label">Full Name <span class="required-star">*</span></label>
+              <input type="text" id="full_name" name="full_name" class="form-input" placeholder="e.g., Aarav Sharma" required />
+            </div>
+
+            <div class="form-group">
+              <label for="age" class="form-label">Age (18–65 years) <span class="required-star">*</span></label>
+              <input type="number" id="age" name="age" class="form-input" min="18" max="65" placeholder="e.g., 24" required />
+            </div>
+
+            <div class="form-group">
+              <label for="gender" class="form-label">Gender <span class="required-star">*</span></label>
+              <select id="gender" name="gender" class="form-select" required>
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="blood_group" class="form-label">Blood Group <span class="required-star">*</span></label>
+              <select id="blood_group" name="blood_group" class="form-select" required>
+                <option value="">Select Blood Group</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="phone" class="form-label">Mobile Number (+91) <span class="required-star">*</span></label>
+              <div class="phone-input-group">
+                <span class="phone-prefix">+91</span>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  class="form-input"
+                  inputmode="numeric"
+                  maxlength="10"
+                  placeholder="9876543210"
+                  required
+                />
+              </div>
+              <span class="field-hint">10-digit Indian mobile starting with 6, 7, 8, or 9.</span>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="email" class="form-label">Email Address <span class="required-star">*</span></label>
+              <input type="email" id="email" name="email" class="form-input" placeholder="e.g., aarav.sharma@example.in" required />
+            </div>
+
+            <div class="form-group full-width">
+              <label for="house_street" class="form-label">House / Flat No. &amp; Street Address <span class="required-star">*</span></label>
+              <input type="text" id="house_street" name="house_street" class="form-input" placeholder="e.g., Flat 402, Shanti Enclave, MG Road" required />
+            </div>
+
+            <div class="form-group">
+              <label for="area" class="form-label">Area / Locality <span class="required-star">*</span></label>
+              <input type="text" id="area" name="area" class="form-input" placeholder="e.g., Indiranagar" required />
+            </div>
+
+            <div class="form-group">
+              <label for="city" class="form-label">City / Town <span class="required-star">*</span></label>
+              <input type="text" id="city" name="city" class="form-input" placeholder="e.g., Bengaluru" required />
+            </div>
+
+            <div class="form-group">
+              <label for="district" class="form-label">District <span class="required-star">*</span></label>
+              <input type="text" id="district" name="district" class="form-input" placeholder="e.g., Bengaluru Urban" required />
+            </div>
+
+            <div class="form-group">
+              <label for="state" class="form-label">State / Union Territory <span class="required-star">*</span></label>
+              <select id="state" name="state" class="form-select" required>
+                <option value="">Select State / UT</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="pin_code" class="form-label">PIN Code <span class="required-star">*</span></label>
+              <input
+                type="text"
+                id="pin_code"
+                name="pin_code"
+                class="form-input mono"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="e.g., 560038"
+                required
+              />
+              <span class="field-hint">6-digit Indian postal PIN code.</span>
+            </div>
+
+            <div class="form-group full-width" style="margin-top: 8px;">
+              <button type="submit" id="donorSubmitBtn" class="btn btn-primary">
+                Register as Donor
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <aside class="surface-card sidebar-notes">
+          <h3>Indian Blood Donor Eligibility</h3>
+          <p>
+            Before donating blood at an accredited Indian blood centre, donors are screened for
+            general health:
+          </p>
+          <ul class="info-list">
+            <li>Age between 18 and 65 years.</li>
+            <li>Minimum body weight of 45 kg.</li>
+            <li>Haemoglobin level of at least 12.5 g/dL.</li>
+            <li>Minimum 3 months gap since last whole-blood donation.</li>
+          </ul>
+
+          <hr class="sidebar-divider" />
+
+          <h3>Donor Account Portal</h3>
+          <p>
+            Want to manage your donor profile and view matching blood needs? Create or sign in to a
+            Donor Account.
+          </p>
+          <a href="/donor-login.html" class="btn btn-outline btn-sm">Donor Login / Register</a>
+
+          <hr class="sidebar-divider" />
+
+          <h3>Need Blood Instead?</h3>
+          <p>
+            If a patient at an Indian hospital needs blood units urgently, submit a request form
+            for review.
+          </p>
+          <a href="/request.html" class="btn btn-outline btn-sm">Go to Request Blood</a>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div><strong>LifeFlow</strong> · Blood Bank Management System (India)</div>
+      <div class="footer-links">
+        <a href="/donor-login.html">Donor Login</a>
+        <a href="/patient-login.html">Patient Login</a>
+        <a href="/admin-login.html">Admin Login</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/script.js"></script>
+</body>
+</html>
