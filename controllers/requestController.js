@@ -95,12 +95,35 @@ export async function createBloodRequest(req, res) {
 
 export async function getAllRequests(req, res) {
   try {
+    const bloodGroup = sanitizeText(req.query.blood_group || '', 5);
+    const urgency = sanitizeText(req.query.urgency || '', 20);
+    const status = sanitizeText(req.query.status || '', 20);
+
+    const conditions = [];
+    const params = [];
+
+    if (bloodGroup && VALID_BLOOD_GROUPS.includes(bloodGroup)) {
+      conditions.push('blood_group = ?');
+      params.push(bloodGroup);
+    }
+    if (urgency && VALID_URGENCIES.includes(urgency)) {
+      conditions.push('urgency = ?');
+      params.push(urgency);
+    }
+    if (status && VALID_STATUSES.includes(status)) {
+      conditions.push('status = ?');
+      params.push(status);
+    }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const db = await getDb();
     const [rows] = await db.execute(
       `SELECT id, patient_user_id, patient_name, requester_name, phone, blood_group,
               units_required, hospital_name, location, urgency, status, created_at, updated_at
        FROM blood_requests
-       ORDER BY id DESC`
+       ${whereClause}
+       ORDER BY id DESC`,
+      params
     );
 
     return res.json({ success: true, requests: rows });

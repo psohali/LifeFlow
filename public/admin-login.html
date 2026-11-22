@@ -64,11 +64,11 @@
         <div class="auth-wrapper surface-card">
           <div id="authAlert" class="alert hidden" role="status"></div>
 
-          <!-- Standard Admin Sign-In Form -->
+          <!-- Standard Admin Sign-In Form (Username & Password Only) -->
           <div id="loginPanel">
             <h2 style="font-size: 1.35rem; margin-bottom: 6px;">Sign In</h2>
             <p style="font-size: 0.92rem; margin-bottom: 20px;">
-              Enter the administrator credentials created via <code>node create-admin.js</code>.
+              Enter your administrator username and password.
             </p>
 
             <form id="adminLoginForm" class="form-grid" style="grid-template-columns: 1fr;" novalidate>
@@ -90,44 +90,28 @@
             </form>
           </div>
 
-          <!-- One-Time Initial Admin Setup (Shown ONLY when users table has 0 admins) -->
+          <!-- One-Time Initial Admin Setup (Username & Password Only; shown ONLY when 0 admins exist) -->
           <div id="setupPanel" class="hidden">
-            <h2 style="font-size: 1.35rem; margin-bottom: 6px;">First-Time Administrator Setup</h2>
+            <h2 style="font-size: 1.35rem; margin-bottom: 6px;">Create Administrator Credentials</h2>
             <p style="font-size: 0.92rem; margin-bottom: 18px;">
-              No administrator account exists in the database yet. Create your first admin account
-              below, or run <code>node create-admin.js</code> in the terminal. This form locks
-              automatically once the first admin is created.
+              No administrator account exists yet. Set a username and password below to sign in and
+              manage LifeFlow. This setup locks automatically once created.
             </p>
 
             <form id="adminSetupForm" class="form-grid" style="grid-template-columns: 1fr;" novalidate>
               <div class="form-group">
-                <label for="setup_username" class="form-label">Admin Username <span class="required-star">*</span></label>
-                <input type="text" id="setup_username" name="username" class="form-input" placeholder="e.g., admin_india" required />
-              </div>
-
-              <div class="form-group">
-                <label for="setup_full_name" class="form-label">Full Name <span class="required-star">*</span></label>
-                <input type="text" id="setup_full_name" name="full_name" class="form-input" placeholder="e.g., Ananya Kulkarni" required />
-              </div>
-
-              <div class="form-group">
-                <label for="setup_email" class="form-label">Email Address <span class="required-star">*</span></label>
-                <input type="email" id="setup_email" name="email" class="form-input" placeholder="e.g., admin@lifeflow.org.in" required />
+                <label for="setup_username" class="form-label">Username <span class="required-star">*</span></label>
+                <input type="text" id="setup_username" name="username" class="form-input" placeholder="e.g., admin" autocomplete="username" required />
               </div>
 
               <div class="form-group">
                 <label for="setup_password" class="form-label">Password (min 8 characters) <span class="required-star">*</span></label>
-                <input type="password" id="setup_password" name="password" class="form-input" minlength="8" required />
-              </div>
-
-              <div class="form-group">
-                <label for="setup_confirm_password" class="form-label">Confirm Password <span class="required-star">*</span></label>
-                <input type="password" id="setup_confirm_password" name="confirm_password" class="form-input" minlength="8" required />
+                <input type="password" id="setup_password" name="password" class="form-input" minlength="8" autocomplete="new-password" required />
               </div>
 
               <div class="form-group" style="margin-top: 6px;">
                 <button type="submit" id="setupSubmitBtn" class="btn btn-primary">
-                  Create Administrator Account
+                  Create &amp; Sign In
                 </button>
               </div>
             </form>

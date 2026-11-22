@@ -11,8 +11,8 @@ USE lifeflow;
 CREATE TABLE IF NOT EXISTS users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(60) NULL UNIQUE,
-  full_name VARCHAR(120) NOT NULL,
-  email VARCHAR(120) NOT NULL UNIQUE,
+  full_name VARCHAR(120) NOT NULL DEFAULT 'Administrator',
+  email VARCHAR(120) NULL UNIQUE,
   phone VARCHAR(15) NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('donor', 'patient', 'admin') NOT NULL,

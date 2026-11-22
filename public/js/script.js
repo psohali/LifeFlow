@@ -1075,6 +1075,57 @@ async function initPatientDashboard() {
 /* ==========================================================================
    Page: Admin Login (admin-login.html)
    ========================================================================== */
+async function openAdminDashboardAfterAuth(token) {
+  try {
+    const probeRes = await fetch('/api/auth/me', {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    const probeData = await probeRes.json();
+    if (probeData.authenticated && probeData.user?.role === 'admin') {
+      window.location.href = '/admin-dashboard.html';
+      return;
+    }
+  } catch {
+    // Fall back to in-memory Bearer shell when iframe third-party cookies are blocked
+  }
+
+  if (!token) {
+    window.location.href = '/admin-dashboard.html';
+    return;
+  }
+
+  const shellRes = await fetch('/api/admin/shell', {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!shellRes.ok) {
+    throw new Error('Could not open the Admin Dashboard.');
+  }
+
+  const html = await shellRes.text();
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const newMain = parsed.querySelector('#adminDashboardRoot');
+  const currentMain = document.querySelector('main');
+  if (!newMain || !currentMain) {
+    window.location.href = '/admin-dashboard.html';
+    return;
+  }
+
+  document.title = parsed.title || 'Admin Dashboard – LifeFlow (India)';
+  const currentHeaderActions = document.querySelector('.header-actions');
+  const newHeaderActions = parsed.querySelector('.header-actions');
+  if (currentHeaderActions && newHeaderActions) {
+    currentHeaderActions.replaceChildren(
+      ...Array.from(newHeaderActions.childNodes).map((n) => document.importNode(n, true))
+    );
+  }
+
+  currentMain.replaceWith(document.importNode(newMain, true));
+  await initAdminDashboard(token);
+}
+
 async function initAdminLoginPage() {
   const loginForm = document.getElementById('adminLoginForm');
   const setupForm = document.getElementById('adminSetupForm');
@@ -1084,13 +1135,17 @@ async function initAdminLoginPage() {
   const setupPanel = document.getElementById('setupPanel');
 
   try {
-    const meData = await (await fetch('/api/auth/me', { credentials: 'include' })).json();
+    const meData = await (
+      await fetch('/api/auth/me', { credentials: 'include', cache: 'no-store' })
+    ).json();
     if (meData.authenticated && meData.user?.role === 'admin') {
       window.location.replace('/admin-dashboard.html');
       return;
     }
 
-    const statusData = await (await fetch('/api/auth/setup-status', { credentials: 'include' })).json();
+    const statusData = await (
+      await fetch('/api/auth/setup-status', { credentials: 'include', cache: 'no-store' })
+    ).json();
     if (statusData.success && statusData.hasAdmin === false && setupPanel) {
       setupPanel.classList.remove('hidden');
       loginPanel.classList.add('hidden');
@@ -1123,10 +1178,10 @@ async function initAdminLoginPage() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Invalid login credentials.');
+        throw new Error(data.message || 'Invalid username or password.');
       }
 
-      window.location.href = '/admin-dashboard.html';
+      await openAdminDashboardAfterAuth(data.token || null);
     } catch (err) {
       showAlert('authAlert', 'error', err.message || 'Sign in failed.');
     } finally {
@@ -1141,15 +1196,19 @@ async function initAdminLoginPage() {
       hideAlert('authAlert');
 
       const btn = document.getElementById('setupSubmitBtn');
+      const username = setupForm.username.value.trim();
       const password = setupForm.password.value;
-      const confirmPassword = setupForm.confirm_password.value;
 
-      if (password.length < 8) {
-        showAlert('authAlert', 'error', 'Password must be at least 8 characters long.');
+      if (!/^[a-z0-9_.-]{3,30}$/i.test(username)) {
+        showAlert(
+          'authAlert',
+          'error',
+          'Username must be 3–30 characters using letters, numbers, dots, hyphens, or underscores.'
+        );
         return;
       }
-      if (password !== confirmPassword) {
-        showAlert('authAlert', 'error', 'Passwords do not match.');
+      if (password.length < 8) {
+        showAlert('authAlert', 'error', 'Password must be at least 8 characters long.');
         return;
       }
 
@@ -1161,12 +1220,7 @@ async function initAdminLoginPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            username: setupForm.username.value.trim(),
-            full_name: setupForm.full_name.value.trim(),
-            email: setupForm.email.value.trim(),
-            password,
-          }),
+          body: JSON.stringify({ username, password }),
         });
         const data = await res.json();
 
@@ -1174,12 +1228,12 @@ async function initAdminLoginPage() {
           throw new Error(data.message || 'Failed to create administrator.');
         }
 
-        window.location.href = '/admin-dashboard.html';
+        await openAdminDashboardAfterAuth(data.token || null);
       } catch (err) {
         showAlert('authAlert', 'error', err.message || 'Admin setup failed.');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Create Administrator Account';
+        btn.textContent = 'Create & Sign In';
       }
     });
   }
@@ -1188,14 +1242,28 @@ async function initAdminLoginPage() {
 /* ==========================================================================
    Page: Admin Dashboard (admin-dashboard.html)
    ========================================================================== */
-async function initAdminDashboard() {
+async function initAdminDashboard(bearerToken = null) {
   const dashboardRoot = document.getElementById('adminDashboardRoot');
   if (!dashboardRoot) return;
 
+  function adminFetch(url, options = {}) {
+    const headers = { ...(options.headers || {}) };
+    if (bearerToken) {
+      headers.Authorization = `Bearer ${bearerToken}`;
+    }
+    return fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+      cache: 'no-store',
+    });
+  }
+
   setupTabGroups();
+  populateStateDropdowns();
 
   try {
-    const meData = await (await fetch('/api/auth/me', { credentials: 'include' })).json();
+    const meData = await (await adminFetch('/api/auth/me')).json();
     if (!meData.authenticated || meData.user?.role !== 'admin') {
       window.location.replace('/admin-login.html');
       return;
@@ -1203,23 +1271,29 @@ async function initAdminDashboard() {
 
     const adminNameEl = document.getElementById('adminWelcomeName');
     if (adminNameEl && meData.user) {
-      adminNameEl.textContent = `${meData.user.fullName} (${meData.user.username || meData.user.email})`;
+      adminNameEl.textContent = meData.user.username || meData.user.fullName || 'Administrator';
     }
   } catch {
     window.location.replace('/admin-login.html');
     return;
   }
 
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      window.location.href = '/admin-login.html';
-    });
+  async function performLogout() {
+    try {
+      await adminFetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // Ignore logout network error
+    }
+    window.location.href = '/admin-login.html';
   }
 
+  const logoutBtn = document.getElementById('logoutBtn');
+  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+  if (logoutBtn) logoutBtn.addEventListener('click', performLogout);
+  if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', performLogout);
+
   async function loadStats() {
-    const res = await fetch('/api/admin/stats', { credentials: 'include' });
+    const res = await adminFetch('/api/admin/stats');
     if (res.status === 401 || res.status === 403) {
       window.location.replace('/admin-login.html');
       return;
@@ -1227,16 +1301,116 @@ async function initAdminDashboard() {
     const data = await res.json();
     if (!data.success) return;
 
-    document.getElementById('statTotalDonors').textContent = String(data.stats.totalDonors);
-    document.getElementById('statTotalPatients').textContent = String(data.stats.totalPatients);
-    document.getElementById('statTotalRequests').textContent = String(data.stats.totalRequests);
-    document.getElementById('statPendingRequests').textContent = String(data.stats.pendingRequests);
-    document.getElementById('statAvailableUnits').textContent = String(data.stats.availableUnits);
+    const s = data.stats;
+    document.getElementById('statTotalDonors').textContent = String(s.totalDonors ?? 0);
+    document.getElementById('statTotalPatients').textContent = String(s.totalPatients ?? 0);
+    document.getElementById('statTotalRequests').textContent = String(s.totalRequests ?? 0);
+    document.getElementById('statPendingRequests').textContent = String(s.pendingRequests ?? 0);
+    const approvedEl = document.getElementById('statApprovedRequests');
+    if (approvedEl) approvedEl.textContent = String(s.approvedRequests ?? 0);
+    const fulfilledEl = document.getElementById('statFulfilledRequests');
+    if (fulfilledEl) fulfilledEl.textContent = String(s.fulfilledRequests ?? 0);
+    document.getElementById('statAvailableUnits').textContent = String(s.availableUnits ?? 0);
   }
+
+  // Donor Detail & Update Card
+  const donorDetailCard = document.getElementById('donorDetailCard');
+  const donorEditForm = document.getElementById('adminEditDonorForm');
+  const closeDonorDetailBtn = document.getElementById('closeDonorDetailBtn');
+  if (closeDonorDetailBtn && donorDetailCard) {
+    closeDonorDetailBtn.addEventListener('click', () => donorDetailCard.classList.add('hidden'));
+  }
+
+  function openDonorDetail(d) {
+    if (!donorDetailCard || !donorEditForm) return;
+    document.getElementById('donorDetailTitle').textContent = `Donor #${d.id} – ${d.full_name}`;
+    donorEditForm.donor_id.value = String(d.id);
+    donorEditForm.full_name.value = d.full_name || '';
+    donorEditForm.age.value = String(d.age || '');
+    donorEditForm.gender.value = d.gender || 'Male';
+    donorEditForm.blood_group.value = d.blood_group || 'A+';
+    donorEditForm.phone.value = normalizePhone(d.phone || '');
+    donorEditForm.email.value = d.email || '';
+    donorEditForm.house_street.value = d.house_street || '';
+    donorEditForm.area.value = d.area || '';
+    donorEditForm.city.value = d.city || '';
+    donorEditForm.district.value = d.district || '';
+    donorEditForm.state.value = d.state || '';
+    donorEditForm.pin_code.value = d.pin_code || '';
+    donorDetailCard.classList.remove('hidden');
+    donorDetailCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  if (donorEditForm) {
+    donorEditForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert('dashboardAlert');
+      const donorId = donorEditForm.donor_id.value;
+      const btn = document.getElementById('saveAdminDonorBtn');
+      const phoneDigits = normalizePhone(donorEditForm.phone.value);
+      const pinCode = donorEditForm.pin_code.value.trim();
+
+      if (!isValidIndianMobile(phoneDigits)) {
+        showAlert('dashboardAlert', 'error', 'Please enter a valid 10-digit Indian mobile number.');
+        return;
+      }
+      if (!isValidIndianPin(pinCode)) {
+        showAlert('dashboardAlert', 'error', 'Please enter a valid 6-digit Indian PIN code.');
+        return;
+      }
+
+      try {
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        const res = await adminFetch(`/api/admin/donors/${donorId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            full_name: donorEditForm.full_name.value.trim(),
+            age: Number(donorEditForm.age.value),
+            gender: donorEditForm.gender.value,
+            blood_group: donorEditForm.blood_group.value,
+            phone: phoneDigits,
+            email: donorEditForm.email.value.trim(),
+            house_street: donorEditForm.house_street.value.trim(),
+            area: donorEditForm.area.value.trim(),
+            city: donorEditForm.city.value.trim(),
+            district: donorEditForm.district.value.trim(),
+            state: donorEditForm.state.value,
+            pin_code: pinCode,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Could not update donor.');
+        showAlert('dashboardAlert', 'success', data.message);
+        donorDetailCard.classList.add('hidden');
+        await loadDonors();
+      } catch (err) {
+        showAlert('dashboardAlert', 'error', err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Donor Updates';
+      }
+    });
+  }
+
+  const donorSearchInput = document.getElementById('donorSearchInput');
+  const donorBloodFilter = document.getElementById('donorBloodFilter');
+  const donorSearchResetBtn = document.getElementById('donorSearchResetBtn');
 
   async function loadDonors() {
     const tbody = document.getElementById('donorsTableBody');
-    const res = await fetch('/api/donors', { credentials: 'include' });
+    const params = new URLSearchParams();
+    if (donorSearchInput && donorSearchInput.value.trim()) {
+      params.set('q', donorSearchInput.value.trim());
+    }
+    if (donorBloodFilter && donorBloodFilter.value) {
+      params.set('blood_group', donorBloodFilter.value);
+    }
+
+    const queryStr = params.toString() ? `?${params.toString()}` : '';
+    const res = await adminFetch(`/api/donors${queryStr}`);
     const data = await res.json();
     tbody.replaceChildren();
 
@@ -1245,7 +1419,7 @@ async function initAdminDashboard() {
       const td = document.createElement('td');
       td.colSpan = 8;
       td.className = 'empty-state';
-      td.textContent = 'No donor registrations have been submitted yet.';
+      td.textContent = 'No matching donor registrations found.';
       tr.appendChild(td);
       tbody.appendChild(tr);
       return;
@@ -1261,7 +1435,7 @@ async function initAdminDashboard() {
         d.blood_group,
         `${d.phone}\n${d.email}`,
         `${d.house_street}, ${d.area}, ${d.city}, ${d.district}, ${d.state} - ${d.pin_code}`,
-        d.user_id ? `Account (${d.account_status || 'active'})` : 'Walk-in Form',
+        d.user_id ? (d.account_status || 'active').toUpperCase() : 'Walk-in Form',
       ];
 
       cells.forEach((text, idx) => {
@@ -1271,49 +1445,138 @@ async function initAdminDashboard() {
           td.style.fontWeight = '700';
           td.style.color = 'var(--crimson)';
         }
+        if (idx === 6 && d.user_id) {
+          td.className = `status-text status-${d.account_status || 'active'}`;
+        }
         td.textContent = text;
         if (idx === 4) td.style.whiteSpace = 'pre-line';
         tr.appendChild(td);
       });
 
       const tdAction = document.createElement('td');
+      const controls = document.createElement('div');
+      controls.className = 'inline-controls';
+
+      const viewEditBtn = document.createElement('button');
+      viewEditBtn.type = 'button';
+      viewEditBtn.className = 'btn btn-outline btn-sm';
+      viewEditBtn.textContent = 'View / Edit';
+      viewEditBtn.addEventListener('click', () => openDonorDetail(d));
+      controls.appendChild(viewEditBtn);
+
       if (d.user_id) {
         const nextStatus = d.account_status === 'rejected' ? 'active' : 'rejected';
         const toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
-        toggleBtn.className = d.account_status === 'rejected' ? 'btn btn-outline btn-sm' : 'btn btn-danger-outline btn-sm';
+        toggleBtn.className = d.account_status === 'rejected' ? 'btn btn-primary btn-sm' : 'btn btn-danger-outline btn-sm';
         toggleBtn.textContent = d.account_status === 'rejected' ? 'Activate' : 'Deactivate';
         toggleBtn.addEventListener('click', async () => {
           hideAlert('dashboardAlert');
-          const res2 = await fetch(`/api/admin/users/${d.user_id}/status`, {
+          const res2 = await adminFetch(`/api/admin/users/${d.user_id}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ account_status: nextStatus }),
           });
           const data2 = await res2.json();
           if (res2.ok && data2.success) {
             showAlert('dashboardAlert', 'success', data2.message);
-            await loadDonors();
+            await Promise.all([loadDonors(), loadSecurityOverview()]);
           } else {
             showAlert('dashboardAlert', 'error', data2.message || 'Failed to update donor status.');
           }
         });
-        tdAction.appendChild(toggleBtn);
-      } else {
-        tdAction.textContent = formatISTDateTime(d.created_at);
+        controls.appendChild(toggleBtn);
       }
 
+      tdAction.appendChild(controls);
       tr.appendChild(tdAction);
       tbody.appendChild(tr);
     });
+  }
+
+  if (donorSearchInput) {
+    let searchTimer = null;
+    donorSearchInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadDonors, 220);
+    });
+  }
+  if (donorBloodFilter) {
+    donorBloodFilter.addEventListener('change', loadDonors);
+  }
+  if (donorSearchResetBtn) {
+    donorSearchResetBtn.addEventListener('click', () => {
+      if (donorSearchInput) donorSearchInput.value = '';
+      if (donorBloodFilter) donorBloodFilter.value = '';
+      loadDonors();
+    });
+  }
+
+  // Patient Requests Detail Panel
+  const patientDetailCard = document.getElementById('patientRequestsDetailCard');
+  const closePatientDetailBtn = document.getElementById('closePatientDetailBtn');
+  if (closePatientDetailBtn && patientDetailCard) {
+    closePatientDetailBtn.addEventListener('click', () => patientDetailCard.classList.add('hidden'));
+  }
+
+  async function viewPatientRequests(patient) {
+    if (!patientDetailCard) return;
+    const res = await adminFetch(`/api/admin/patients/${patient.user_id}/requests`);
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      showAlert('dashboardAlert', 'error', data.message || 'Could not load patient requests.');
+      return;
+    }
+
+    document.getElementById('patientDetailTitle').textContent =
+      `Blood Requests by ${data.patient.full_name} (${data.patient.phone || data.patient.email})`;
+
+    const body = document.getElementById('patientDetailRequestsBody');
+    body.replaceChildren();
+    if (!data.requests || data.requests.length === 0) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 7;
+      td.className = 'empty-state';
+      td.textContent = 'This patient has not submitted any blood requests yet.';
+      tr.appendChild(td);
+      body.appendChild(tr);
+    } else {
+      data.requests.forEach((r) => {
+        const tr = document.createElement('tr');
+        const cells = [
+          `#${r.id}`,
+          r.patient_name,
+          `${r.blood_group} · ${r.units_required}u`,
+          `${r.hospital_name}, ${r.location}`,
+          r.urgency,
+          r.status,
+          formatISTDateTime(r.created_at),
+        ];
+        cells.forEach((val, idx) => {
+          const td = document.createElement('td');
+          if (idx === 0) td.className = 'mono';
+          if (idx === 2) {
+            td.style.fontWeight = '700';
+            td.style.color = 'var(--crimson)';
+          }
+          if (idx === 5) td.className = `status-text status-${r.status.toLowerCase()}`;
+          td.textContent = val;
+          tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+    }
+
+    patientDetailCard.classList.remove('hidden');
+    patientDetailCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   async function loadPatients() {
     const tbody = document.getElementById('patientsTableBody');
     if (!tbody) return;
 
-    const res = await fetch('/api/admin/patients', { credentials: 'include' });
+    const res = await adminFetch('/api/admin/patients');
     const data = await res.json();
     tbody.replaceChildren();
 
@@ -1334,7 +1597,7 @@ async function initAdminDashboard() {
         `#${p.user_id}`,
         p.full_name,
         p.phone || '—',
-        p.email,
+        p.email || '—',
         String(p.request_count || 0),
         p.account_status.toUpperCase(),
       ];
@@ -1347,45 +1610,66 @@ async function initAdminDashboard() {
       });
 
       const tdAction = document.createElement('td');
+      const controls = document.createElement('div');
+      controls.className = 'inline-controls';
+
+      const viewReqBtn = document.createElement('button');
+      viewReqBtn.type = 'button';
+      viewReqBtn.className = 'btn btn-outline btn-sm';
+      viewReqBtn.textContent = 'View Requests';
+      viewReqBtn.addEventListener('click', () => viewPatientRequests(p));
+
       const nextStatus = p.account_status === 'rejected' ? 'active' : 'rejected';
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = p.account_status === 'rejected' ? 'btn btn-outline btn-sm' : 'btn btn-danger-outline btn-sm';
+      btn.className = p.account_status === 'rejected' ? 'btn btn-primary btn-sm' : 'btn btn-danger-outline btn-sm';
       btn.textContent = p.account_status === 'rejected' ? 'Activate' : 'Deactivate';
       btn.addEventListener('click', async () => {
         hideAlert('dashboardAlert');
-        const r = await fetch(`/api/admin/users/${p.user_id}/status`, {
+        const r = await adminFetch(`/api/admin/users/${p.user_id}/status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ account_status: nextStatus }),
         });
         const d = await r.json();
         if (r.ok && d.success) {
           showAlert('dashboardAlert', 'success', d.message);
-          await loadPatients();
+          await Promise.all([loadPatients(), loadSecurityOverview()]);
         } else {
           showAlert('dashboardAlert', 'error', d.message || 'Action failed.');
         }
       });
-      tdAction.appendChild(btn);
+
+      controls.append(viewReqBtn, btn);
+      tdAction.appendChild(controls);
       tr.appendChild(tdAction);
       tbody.appendChild(tr);
     });
   }
 
+  const reqBloodFilter = document.getElementById('reqBloodFilter');
+  const reqUrgencyFilter = document.getElementById('reqUrgencyFilter');
+  const reqStatusFilter = document.getElementById('reqStatusFilter');
+  const reqFilterResetBtn = document.getElementById('reqFilterResetBtn');
+
   async function loadRequests() {
     const tbody = document.getElementById('requestsTableBody');
-    const res = await fetch('/api/requests', { credentials: 'include' });
+    const params = new URLSearchParams();
+    if (reqBloodFilter && reqBloodFilter.value) params.set('blood_group', reqBloodFilter.value);
+    if (reqUrgencyFilter && reqUrgencyFilter.value) params.set('urgency', reqUrgencyFilter.value);
+    if (reqStatusFilter && reqStatusFilter.value) params.set('status', reqStatusFilter.value);
+
+    const queryStr = params.toString() ? `?${params.toString()}` : '';
+    const res = await adminFetch(`/api/requests${queryStr}`);
     const data = await res.json();
     tbody.replaceChildren();
 
     if (!data.success || !data.requests || data.requests.length === 0) {
       const tr = document.createElement('tr');
       const td = document.createElement('td');
-      td.colSpan = 8;
+      td.colSpan = 9;
       td.className = 'empty-state';
-      td.textContent = 'No blood requests have been submitted yet.';
+      td.textContent = 'No matching blood requests found.';
       tr.appendChild(td);
       tbody.appendChild(tr);
       return;
@@ -1422,6 +1706,9 @@ async function initAdminDashboard() {
           : 'status-text';
       tdUrgency.textContent = r.urgency;
 
+      const tdSubmitted = document.createElement('td');
+      tdSubmitted.textContent = formatISTDateTime(r.created_at);
+
       const tdStatus = document.createElement('td');
       tdStatus.className = `status-text status-${r.status.toLowerCase()}`;
       tdStatus.textContent = r.status;
@@ -1454,10 +1741,9 @@ async function initAdminDashboard() {
         hideAlert('dashboardAlert');
         saveBtn.disabled = true;
         try {
-          const patchRes = await fetch(`/api/requests/${r.id}/status`, {
+          const patchRes = await adminFetch(`/api/requests/${r.id}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({
               status: select.value,
               remarks: remarksInput.value.trim(),
@@ -1468,7 +1754,7 @@ async function initAdminDashboard() {
             throw new Error(patchData.message || 'Failed to update status.');
           }
           showAlert('dashboardAlert', 'success', patchData.message);
-          await Promise.all([loadStats(), loadRequests(), loadHistory()]);
+          await Promise.all([loadStats(), loadRequests(), loadHistory(), loadSecurityOverview()]);
         } catch (err) {
           showAlert('dashboardAlert', 'error', err.message);
         } finally {
@@ -1479,14 +1765,36 @@ async function initAdminDashboard() {
       controls.append(select, remarksInput, saveBtn);
       tdAction.appendChild(controls);
 
-      tr.append(tdId, tdPatient, tdContact, tdGroup, tdHospital, tdUrgency, tdStatus, tdAction);
+      tr.append(
+        tdId,
+        tdPatient,
+        tdContact,
+        tdGroup,
+        tdHospital,
+        tdUrgency,
+        tdSubmitted,
+        tdStatus,
+        tdAction
+      );
       tbody.appendChild(tr);
+    });
+  }
+
+  [reqBloodFilter, reqUrgencyFilter, reqStatusFilter].forEach((el) => {
+    if (el) el.addEventListener('change', loadRequests);
+  });
+  if (reqFilterResetBtn) {
+    reqFilterResetBtn.addEventListener('click', () => {
+      if (reqBloodFilter) reqBloodFilter.value = '';
+      if (reqUrgencyFilter) reqUrgencyFilter.value = '';
+      if (reqStatusFilter) reqStatusFilter.value = '';
+      loadRequests();
     });
   }
 
   async function loadInventoryManager() {
     const tbody = document.getElementById('stockTableBody');
-    const res = await fetch('/api/inventory', { credentials: 'include' });
+    const res = await adminFetch('/api/inventory');
     const data = await res.json();
     tbody.replaceChildren();
 
@@ -1517,25 +1825,33 @@ async function initAdminDashboard() {
       input.max = '10000';
       input.value = String(item.units_available);
       input.className = 'stock-input';
-      input.setAttribute('aria-label', `Units for ${item.blood_group}`);
+      input.setAttribute('aria-label', `Set total units for ${item.blood_group}`);
 
       const setBtn = document.createElement('button');
       setBtn.type = 'button';
       setBtn.className = 'btn btn-primary btn-sm';
-      setBtn.textContent = 'Save Units';
+      setBtn.textContent = 'Save Quantity';
 
-      const addOneBtn = document.createElement('button');
-      addOneBtn.type = 'button';
-      addOneBtn.className = 'btn btn-outline btn-sm';
-      addOneBtn.textContent = '+1 Unit';
+      const addInput = document.createElement('input');
+      addInput.type = 'number';
+      addInput.min = '1';
+      addInput.max = '500';
+      addInput.value = '1';
+      addInput.className = 'stock-input';
+      addInput.style.width = '74px';
+      addInput.setAttribute('aria-label', `Add units for ${item.blood_group}`);
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'btn btn-outline btn-sm';
+      addBtn.textContent = '+ Add Units';
 
       async function saveStock(mode, unitsVal) {
         hideAlert('dashboardAlert');
         try {
-          const putRes = await fetch(`/api/inventory/${encodeURIComponent(item.blood_group)}`, {
+          const putRes = await adminFetch(`/api/inventory/${encodeURIComponent(item.blood_group)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ mode, units: unitsVal }),
           });
           const putData = await putRes.json();
@@ -1543,16 +1859,20 @@ async function initAdminDashboard() {
             throw new Error(putData.message || 'Stock update failed.');
           }
           showAlert('dashboardAlert', 'success', putData.message);
-          await Promise.all([loadStats(), loadInventoryManager()]);
+          await Promise.all([
+            loadStats(),
+            loadInventoryManager(),
+            fetchInventoryIntoGrid('overviewInventoryGrid', null, null, 'dashboardAlert'),
+          ]);
         } catch (err) {
           showAlert('dashboardAlert', 'error', err.message);
         }
       }
 
       setBtn.addEventListener('click', () => saveStock('set', Number(input.value)));
-      addOneBtn.addEventListener('click', () => saveStock('add', 1));
+      addBtn.addEventListener('click', () => saveStock('add', Number(addInput.value)));
 
-      wrap.append(input, setBtn, addOneBtn);
+      wrap.append(input, setBtn, addInput, addBtn);
       tdControls.appendChild(wrap);
 
       tr.append(tdGroup, tdUnits, tdUpdated, tdControls);
@@ -1564,7 +1884,7 @@ async function initAdminDashboard() {
     const tbody = document.getElementById('historyTableBody');
     if (!tbody) return;
 
-    const res = await fetch('/api/requests/history', { credentials: 'include' });
+    const res = await adminFetch('/api/requests/history');
     const data = await res.json();
     tbody.replaceChildren();
 
@@ -1600,6 +1920,85 @@ async function initAdminDashboard() {
     });
   }
 
+  const adminPasswordForm = document.getElementById('adminPasswordForm');
+  if (adminPasswordForm) {
+    adminPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert('dashboardAlert');
+      const btn = document.getElementById('changeAdminPassBtn');
+      const currentPassword = adminPasswordForm.current_password.value;
+      const newPassword = adminPasswordForm.new_password.value;
+      const confirmPassword = adminPasswordForm.confirm_password.value;
+
+      if (newPassword.length < 8) {
+        showAlert('dashboardAlert', 'error', 'New password must be at least 8 characters long.');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        showAlert('dashboardAlert', 'error', 'New passwords do not match.');
+        return;
+      }
+
+      try {
+        btn.disabled = true;
+        btn.textContent = 'Updating...';
+        const res = await adminFetch('/api/admin/password', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || 'Could not update password.');
+        }
+        showAlert('dashboardAlert', 'success', data.message);
+        adminPasswordForm.reset();
+      } catch (err) {
+        showAlert('dashboardAlert', 'error', err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Update Password';
+      }
+    });
+  }
+
+  async function loadSecurityOverview() {
+    const usernameEl = document.getElementById('secAdminUsername');
+    if (!usernameEl) return;
+
+    const res = await adminFetch('/api/admin/security');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.success || !data.account) return;
+
+    const a = data.account;
+    const s = data.summary || {};
+
+    usernameEl.textContent = a.username || 'Admin';
+    const idRoleEl = document.getElementById('secAdminUserIdRole');
+    if (idRoleEl) idRoleEl.textContent = `#${a.userId} · Administrator`;
+    const statusEl = document.getElementById('secAdminStatus');
+    if (statusEl) {
+      statusEl.textContent = String(a.accountStatus || 'active').toUpperCase();
+      statusEl.className = `status-text status-${a.accountStatus || 'active'}`;
+    }
+    const createdEl = document.getElementById('secAdminCreated');
+    if (createdEl) createdEl.textContent = a.createdAt ? formatISTDateTime(a.createdAt) : '—';
+    const donorAccEl = document.getElementById('secDonorAccounts');
+    if (donorAccEl) {
+      donorAccEl.textContent = `${s.activeDonors ?? 0} Active / ${s.deactivatedDonors ?? 0} Deactivated`;
+    }
+    const patientAccEl = document.getElementById('secPatientAccounts');
+    if (patientAccEl) {
+      patientAccEl.textContent = `${s.activePatients ?? 0} Active / ${s.deactivatedPatients ?? 0} Deactivated`;
+    }
+    const actionsEl = document.getElementById('secAdminActions');
+    if (actionsEl) actionsEl.textContent = String(s.adminActionsCount ?? 0);
+  }
+
   await Promise.all([
     loadStats(),
     loadDonors(),
@@ -1607,6 +2006,8 @@ async function initAdminDashboard() {
     loadRequests(),
     loadInventoryManager(),
     loadHistory(),
+    loadSecurityOverview(),
+    fetchInventoryIntoGrid('overviewInventoryGrid', null, null, 'dashboardAlert'),
   ]);
 }
 

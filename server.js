@@ -1,12 +1,12 @@
-import crypto from 'crypto';
 import dotenv from 'dotenv';
 import express from 'express';
-import session from 'express-session';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { initDatabase } from './config/db.js';
+import { attachSessionMiddleware } from './config/sessionStore.js';
 import {
+  requireAdminApi,
   requireAdminPage,
   requireDonorPage,
   requirePatientPage,
@@ -27,49 +27,13 @@ const publicDir = path.join(__dirname, 'public');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-const sessionStore = new session.MemoryStore();
-
-const httpsSession = session({
-  name: 'lifeflow.sid',
-  secret: SESSION_SECRET,
-  store: sessionStore,
-  resave: false,
-  saveUninitialized: false,
-  proxy: true,
-  cookie: {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    partitioned: true,
-    maxAge: 4 * 60 * 60 * 1000,
-  },
-});
-
-const httpSession = session({
-  name: 'lifeflow.sid',
-  secret: SESSION_SECRET,
-  store: sessionStore,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'lax',
-    maxAge: 4 * 60 * 60 * 1000,
-  },
-});
-
-app.use((req, res, next) => {
-  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
-  return (isHttps ? httpsSession : httpSession)(req, res, next);
-});
+app.use(attachSessionMiddleware);
 
 app.use('/api', verifySameOrigin);
 
@@ -83,6 +47,11 @@ app.get('/patient-dashboard.html', requirePatientPage, (req, res) => {
 });
 
 app.get('/admin-dashboard.html', requireAdminPage, (req, res) => {
+  res.sendFile(path.join(publicDir, 'admin-dashboard.html'));
+});
+
+// Authenticated Admin HTML shell endpoint for Bearer-token iframe environments
+app.get('/api/admin/shell', requireAdminApi, (req, res) => {
   res.sendFile(path.join(publicDir, 'admin-dashboard.html'));
 });
 

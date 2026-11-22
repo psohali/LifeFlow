@@ -53,7 +53,8 @@ export function verifySameOrigin(req, res, next) {
   }
 
   const origin = req.headers.origin;
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const rawHost = req.headers['x-forwarded-host'] || req.headers.host;
+  const host = rawHost ? String(rawHost).split(',')[0].trim() : '';
 
   if (origin && host) {
     try {

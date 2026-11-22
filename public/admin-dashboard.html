@@ -45,7 +45,7 @@
       <a href="/availability.html" class="nav-link">Blood Availability</a>
       <a href="/donate.html" class="nav-link">Donate Blood</a>
       <a href="/request.html" class="nav-link">Request Blood</a>
-      <button type="button" onclick="document.getElementById('logoutBtn').click()" class="btn btn-danger-outline btn-sm" style="margin-top: 6px;">Logout</button>
+      <button type="button" id="mobileLogoutBtn" class="btn btn-danger-outline btn-sm" style="margin-top: 6px;">Logout</button>
     </div>
   </header>
 
@@ -64,64 +64,179 @@
       <div class="container">
         <div id="dashboardAlert" class="alert hidden" role="status"></div>
 
-        <!-- Real Database Statistics -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total Donors</div>
-            <div id="statTotalDonors" class="stat-value">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Registered Patients</div>
-            <div id="statTotalPatients" class="stat-value">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Total Requests</div>
-            <div id="statTotalRequests" class="stat-value">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Pending Requests</div>
-            <div id="statPendingRequests" class="stat-value">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Available Blood Units</div>
-            <div id="statAvailableUnits" class="stat-value">0</div>
-          </div>
-        </div>
-
-        <!-- Management Tabs -->
+        <!-- Admin Navigation Tabs -->
         <div class="tab-bar" role="tablist" aria-label="Admin Management Sections">
-          <button type="button" class="tab-btn active" data-tab="panelRequests">Manage Blood Requests</button>
+          <button type="button" class="tab-btn active" data-tab="panelOverview">Dashboard Overview</button>
           <button type="button" class="tab-btn" data-tab="panelDonors">Manage Donors</button>
           <button type="button" class="tab-btn" data-tab="panelPatients">Manage Patients</button>
-          <button type="button" class="tab-btn" data-tab="panelStock">Manage Blood Stock</button>
+          <button type="button" class="tab-btn" data-tab="panelRequests">Blood Requests</button>
+          <button type="button" class="tab-btn" data-tab="panelStock">Blood Inventory</button>
           <button type="button" class="tab-btn" data-tab="panelHistory">Request History</button>
+          <button type="button" class="tab-btn" data-tab="panelSecurity">Account &amp; Security</button>
         </div>
 
-        <!-- 1. Manage Blood Requests -->
-        <section id="panelRequests" class="tab-panel">
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Patient &amp; Requester</th>
-                  <th>Mobile (+91)</th>
-                  <th>Blood &amp; Units</th>
-                  <th>Hospital &amp; Location</th>
-                  <th>Urgency</th>
-                  <th>Status</th>
-                  <th>Update Status</th>
-                </tr>
-              </thead>
-              <tbody id="requestsTableBody">
-                <tr><td colspan="8" class="empty-state">Loading blood requests...</td></tr>
-              </tbody>
-            </table>
+        <!-- 1. Dashboard Overview -->
+        <section id="panelOverview" class="tab-panel">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Total Registered Donors</div>
+              <div id="statTotalDonors" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Registered Patients</div>
+              <div id="statTotalPatients" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Blood Requests</div>
+              <div id="statTotalRequests" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Pending Requests</div>
+              <div id="statPendingRequests" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Approved Requests</div>
+              <div id="statApprovedRequests" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Fulfilled Requests</div>
+              <div id="statFulfilledRequests" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Available Blood Units</div>
+              <div id="statAvailableUnits" class="stat-value">0</div>
+            </div>
           </div>
+
+          <div class="notice-banner" style="margin-bottom: 18px;">
+            <div>
+              <div class="notice-title">Sample Demonstration Inventory – Not Live Hospital Stock.</div>
+              <div class="notice-sub">All statistics above are queried dynamically from the LifeFlow database.</div>
+            </div>
+          </div>
+
+          <div id="overviewInventoryGrid" class="blood-grid"></div>
         </section>
 
         <!-- 2. Manage Donors -->
         <section id="panelDonors" class="tab-panel hidden">
+          <div class="filter-bar">
+            <div class="filter-field">
+              <label for="donorSearchInput">Search by Name or City</label>
+              <input type="text" id="donorSearchInput" class="form-input" placeholder="e.g., Rohan, Mumbai..." />
+            </div>
+            <div class="filter-field" style="max-width: 210px;">
+              <label for="donorBloodFilter">Filter by Blood Group</label>
+              <select id="donorBloodFilter" class="form-select">
+                <option value="">All Blood Groups</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+            <div>
+              <button type="button" id="donorSearchResetBtn" class="btn btn-outline btn-sm">Reset</button>
+            </div>
+          </div>
+
+          <div id="donorDetailCard" class="surface-card hidden" style="margin-bottom: 22px;">
+            <div class="detail-panel-header">
+              <h2 id="donorDetailTitle" style="font-size: 1.15rem; margin: 0;">Donor Details &amp; Update</h2>
+              <button type="button" id="closeDonorDetailBtn" class="btn btn-outline btn-sm">Close</button>
+            </div>
+
+            <form id="adminEditDonorForm" class="form-grid" novalidate>
+              <input type="hidden" id="edit_donor_id" name="donor_id" />
+
+              <div class="form-group">
+                <label for="edit_donor_name" class="form-label">Full Name <span class="required-star">*</span></label>
+                <input type="text" id="edit_donor_name" name="full_name" class="form-input" required />
+              </div>
+
+              <div class="form-group">
+                <label for="edit_donor_age" class="form-label">Age (18–65) <span class="required-star">*</span></label>
+                <input type="number" id="edit_donor_age" name="age" class="form-input" min="18" max="65" required />
+              </div>
+
+              <div class="form-group">
+                <label for="edit_donor_gender" class="form-label">Gender <span class="required-star">*</span></label>
+                <select id="edit_donor_gender" name="gender" class="form-select" required>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="edit_donor_blood" class="form-label">Blood Group <span class="required-star">*</span></label>
+                <select id="edit_donor_blood" name="blood_group" class="form-select" required>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="edit_donor_phone" class="form-label">Mobile (+91) <span class="required-star">*</span></label>
+                <div class="phone-input-group">
+                  <span class="phone-prefix">+91</span>
+                  <input type="tel" id="edit_donor_phone" name="phone" class="form-input" inputmode="numeric" maxlength="10" required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="edit_donor_email" class="form-label">Email Address <span class="required-star">*</span></label>
+                <input type="email" id="edit_donor_email" name="email" class="form-input" required />
+              </div>
+
+              <div class="form-group full-width">
+                <label for="edit_donor_street" class="form-label">House / Street Address <span class="required-star">*</span></label>
+                <input type="text" id="edit_donor_street" name="house_street" class="form-input" required />
+              </div>
+
+              <div class="form-group">
+                <label for="edit_donor_area" class="form-label">Area / Locality <span class="required-star">*</span></label>
+                <input type="text" id="edit_donor_area" name="area" class="form-input" required />
+              </div>
+
+              <div class="form-group">
+                <label for="edit_donor_city" class="form-label">City <span class="required-star">*</span></label>
+                <input type="text" id="edit_donor_city" name="city" class="form-input" required />
+              </div>
+
+              <div class="form-group">
+                <label for="edit_donor_district" class="form-label">District <span class="required-star">*</span></label>
+                <input type="text" id="edit_donor_district" name="district" class="form-input" required />
+              </div>
+
+              <div class="form-group">
+                <label for="edit_donor_state" class="form-label">State / UT <span class="required-star">*</span></label>
+                <select id="edit_donor_state" name="state" class="form-select indian-state-select" required>
+                  <option value="">Select State / UT</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="edit_donor_pin" class="form-label">PIN Code <span class="required-star">*</span></label>
+                <input type="text" id="edit_donor_pin" name="pin_code" class="form-input mono" maxlength="6" required />
+              </div>
+
+              <div class="form-group full-width" style="margin-top: 4px;">
+                <button type="submit" id="saveAdminDonorBtn" class="btn btn-primary btn-sm">Save Donor Updates</button>
+              </div>
+            </form>
+          </div>
+
           <div class="table-wrap">
             <table class="data-table">
               <thead>
@@ -132,8 +247,8 @@
                   <th>Blood Group</th>
                   <th>Contact (+91 &amp; Email)</th>
                   <th>Indian Address &amp; PIN</th>
-                  <th>Registration Type</th>
-                  <th>Account Action / Date</th>
+                  <th>Account Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="donorsTableBody">
@@ -145,6 +260,29 @@
 
         <!-- 3. Manage Patients -->
         <section id="panelPatients" class="tab-panel hidden">
+          <div id="patientRequestsDetailCard" class="surface-card hidden" style="margin-bottom: 22px;">
+            <div class="detail-panel-header">
+              <h2 id="patientDetailTitle" style="font-size: 1.15rem; margin: 0;">Patient Blood Requests</h2>
+              <button type="button" id="closePatientDetailBtn" class="btn btn-outline btn-sm">Close</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Request ID</th>
+                    <th>Patient Name</th>
+                    <th>Blood &amp; Units</th>
+                    <th>Hospital &amp; Location</th>
+                    <th>Urgency</th>
+                    <th>Status</th>
+                    <th>Submitted (IST)</th>
+                  </tr>
+                </thead>
+                <tbody id="patientDetailRequestsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="table-wrap">
             <table class="data-table">
               <thead>
@@ -155,7 +293,7 @@
                   <th>Email</th>
                   <th>Requests Submitted</th>
                   <th>Account Status</th>
-                  <th>Action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="patientsTableBody">
@@ -165,12 +303,75 @@
           </div>
         </section>
 
-        <!-- 4. Manage Blood Stock -->
+        <!-- 4. Manage Blood Requests -->
+        <section id="panelRequests" class="tab-panel hidden">
+          <div class="filter-bar">
+            <div class="filter-field">
+              <label for="reqBloodFilter">Blood Group</label>
+              <select id="reqBloodFilter" class="form-select">
+                <option value="">All Blood Groups</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="reqUrgencyFilter">Urgency</label>
+              <select id="reqUrgencyFilter" class="form-select">
+                <option value="">All Urgencies</option>
+                <option value="Normal">Normal</option>
+                <option value="Urgent">Urgent</option>
+                <option value="Emergency">Emergency</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="reqStatusFilter">Status</label>
+              <select id="reqStatusFilter" class="form-select">
+                <option value="">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Fulfilled">Fulfilled</option>
+              </select>
+            </div>
+            <div>
+              <button type="button" id="reqFilterResetBtn" class="btn btn-outline btn-sm">Reset Filters</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Patient &amp; Requester</th>
+                  <th>Mobile (+91)</th>
+                  <th>Blood &amp; Units</th>
+                  <th>Hospital &amp; Location</th>
+                  <th>Urgency</th>
+                  <th>Submitted (IST)</th>
+                  <th>Status</th>
+                  <th>Update Status</th>
+                </tr>
+              </thead>
+              <tbody id="requestsTableBody">
+                <tr><td colspan="9" class="empty-state">Loading blood requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 5. Manage Blood Inventory -->
         <section id="panelStock" class="tab-panel hidden">
           <div class="notice-banner" style="margin-bottom: 18px;">
             <div>
               <div class="notice-title">Sample Demonstration Inventory – Not Live Hospital Stock.</div>
-              <div class="notice-sub">Changes saved here update the database and immediately reflect on Blood Availability.</div>
+              <div class="notice-sub">Update stock quantities or add incoming blood units below. Changes save directly and appear on the public Blood Availability page.</div>
             </div>
           </div>
           <div class="table-wrap">
@@ -180,7 +381,7 @@
                   <th>Blood Group</th>
                   <th>Current Units</th>
                   <th>Last Updated (IST)</th>
-                  <th>Update Stock</th>
+                  <th>Update Quantity / Add Units</th>
                 </tr>
               </thead>
               <tbody id="stockTableBody">
@@ -190,7 +391,7 @@
           </div>
         </section>
 
-        <!-- 5. Request History Audit Log -->
+        <!-- 6. Request History Audit Log -->
         <section id="panelHistory" class="tab-panel hidden">
           <div class="table-wrap">
             <table class="data-table">
@@ -208,6 +409,81 @@
                 <tr><td colspan="6" class="empty-state">Loading request history...</td></tr>
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <!-- 7. Account & Security Management -->
+        <section id="panelSecurity" class="tab-panel hidden">
+          <div class="about-grid">
+            <div class="surface-card">
+              <h2 style="font-size: 1.25rem; margin-bottom: 6px;">Administrator Account &amp; Security Overview</h2>
+              <p style="font-size: 0.92rem; margin-bottom: 18px;">
+                Live administrator account details and portal access counts from the database.
+              </p>
+
+              <dl class="profile-kv-grid">
+                <div class="profile-kv-item">
+                  <dt>Admin Username</dt>
+                  <dd id="secAdminUsername" class="mono">—</dd>
+                </div>
+                <div class="profile-kv-item">
+                  <dt>Account ID &amp; Role</dt>
+                  <dd id="secAdminUserIdRole">—</dd>
+                </div>
+                <div class="profile-kv-item">
+                  <dt>Account Status</dt>
+                  <dd id="secAdminStatus" class="status-text status-active">—</dd>
+                </div>
+                <div class="profile-kv-item">
+                  <dt>Account Created (IST)</dt>
+                  <dd id="secAdminCreated">—</dd>
+                </div>
+                <div class="profile-kv-item">
+                  <dt>Donor Accounts (Active / Deactivated)</dt>
+                  <dd id="secDonorAccounts" class="mono">0 / 0</dd>
+                </div>
+                <div class="profile-kv-item">
+                  <dt>Patient Accounts (Active / Deactivated)</dt>
+                  <dd id="secPatientAccounts" class="mono">0 / 0</dd>
+                </div>
+                <div class="profile-kv-item">
+                  <dt>Admin Audit Log Entries</dt>
+                  <dd id="secAdminActions" class="mono">0</dd>
+                </div>
+                <div class="profile-kv-item">
+                  <dt>Password &amp; Session Security</dt>
+                  <dd>bcrypt Hash · HttpOnly Signed Session (4h TTL)</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="surface-card">
+              <h2 style="font-size: 1.25rem; margin-bottom: 6px;">Change Administrator Password</h2>
+              <p style="font-size: 0.92rem; margin-bottom: 18px;">
+                Update your administrator sign-in password securely. Passwords must be at least 8 characters long.
+              </p>
+
+              <form id="adminPasswordForm" class="form-grid" style="grid-template-columns: 1fr;" novalidate>
+                <div class="form-group">
+                  <label for="curr_admin_pass" class="form-label">Current Password <span class="required-star">*</span></label>
+                  <input type="password" id="curr_admin_pass" name="current_password" class="form-input" autocomplete="current-password" required />
+                </div>
+
+                <div class="form-group">
+                  <label for="new_admin_pass" class="form-label">New Password (min 8 characters) <span class="required-star">*</span></label>
+                  <input type="password" id="new_admin_pass" name="new_password" class="form-input" minlength="8" autocomplete="new-password" required />
+                </div>
+
+                <div class="form-group">
+                  <label for="confirm_admin_pass" class="form-label">Confirm New Password <span class="required-star">*</span></label>
+                  <input type="password" id="confirm_admin_pass" name="confirm_password" class="form-input" minlength="8" autocomplete="new-password" required />
+                </div>
+
+                <div class="form-group" style="margin-top: 6px;">
+                  <button type="submit" id="changeAdminPassBtn" class="btn btn-primary">Update Password</button>
+                </div>
+              </form>
+            </div>
           </div>
         </section>
       </div>

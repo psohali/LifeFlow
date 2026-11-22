@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { seedSamplePortalData } from './seedSampleData.js';
 
 dotenv.config();
 
@@ -46,8 +47,8 @@ function createPreviewSchema(db) {
     CREATE TABLE IF NOT EXISTS users (
       user_id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NULL UNIQUE,
-      full_name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
+      full_name TEXT NOT NULL DEFAULT 'Administrator',
+      email TEXT NULL UNIQUE,
       phone TEXT NULL UNIQUE,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL CHECK (role IN ('donor', 'patient', 'admin')),
@@ -125,6 +126,8 @@ function initSqlitePreviewDatabase() {
 
     const userCols = db.prepare("PRAGMA table_info('users')").all();
     const hasNewUsers = userCols.some((c) => c.name === 'user_id' || c.name === 'account_status');
+    const emailCol = userCols.find((c) => c.name === 'email');
+    const needsNullableEmail = Boolean(emailCol && Number(emailCol.notnull) === 1);
     const oldStakeholderTable = db
       .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='stakeholders'")
       .get();
@@ -136,6 +139,24 @@ function initSqlitePreviewDatabase() {
         DROP TABLE IF EXISTS donors;
         DROP TABLE IF EXISTS stakeholders;
         DROP TABLE IF EXISTS users;
+      `);
+    } else if (needsNullableEmail) {
+      db.exec(`
+        CREATE TABLE users_new (
+          user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT NULL UNIQUE,
+          full_name TEXT NOT NULL DEFAULT 'Administrator',
+          email TEXT NULL UNIQUE,
+          phone TEXT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          role TEXT NOT NULL CHECK (role IN ('donor', 'patient', 'admin')),
+          account_status TEXT NOT NULL DEFAULT 'active' CHECK (account_status IN ('active', 'pending', 'rejected')),
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO users_new (user_id, username, full_name, email, phone, password_hash, role, account_status, created_at)
+        SELECT user_id, username, full_name, email, phone, password_hash, role, account_status, created_at FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_new RENAME TO users;
       `);
     }
 
@@ -189,11 +210,13 @@ export async function initDatabase() {
     await pool.query('SELECT 1');
     mysqlPool = pool;
     mode = 'mysql';
+    await seedSamplePortalData(mysqlPool);
     console.log(`[DB] Connected to MySQL database "${dbConfig.database}" at ${dbConfig.host}:${dbConfig.port}`);
     return mysqlPool;
   } catch (err) {
     console.warn(`[DB] MySQL unavailable (${err.code || err.message}). Using local SQL preview database.`);
     const adapter = await initSqlitePreviewDatabase();
+    await seedSamplePortalData(adapter);
     console.log('[DB] Preview SQL database ready (data/lifeflow_preview.sqlite).');
     return adapter;
   }

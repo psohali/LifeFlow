@@ -1,5 +1,12 @@
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { getDb } from '../config/db.js';
+import {
+  clearSessionCookie,
+  createUserSession,
+  destroySessionToken,
+  setSessionCookie,
+} from '../config/sessionStore.js';
 import {
   INDIAN_STATES_AND_UTS,
   VALID_BLOOD_GROUPS,
@@ -11,30 +18,37 @@ import {
   sanitizeText,
 } from '../utils/validators.js';
 
-function saveUserSession(req, user) {
-  return new Promise((resolve, reject) => {
-    req.session.regenerate((err) => {
-      if (err) return reject(err);
-      req.session.userId = user.user_id;
-      req.session.role = user.role;
-      req.session.username = user.username || null;
-      req.session.fullName = user.full_name;
-      req.session.email = user.email;
-      req.session.phone = user.phone || null;
-      req.session.accountStatus = user.account_status;
-      if (user.role === 'admin') {
-        req.session.adminId = user.user_id;
-        req.session.adminUsername = user.username;
-        req.session.adminName = user.full_name;
-        req.session.adminEmail = user.email;
-      }
-      return resolve();
-    });
-  });
+function getConfiguredAdminCreds() {
+  const username = sanitizeText(process.env.LIFEFLOW_ADMIN_USERNAME || '', 60).toLowerCase();
+  const password = String(process.env.LIFEFLOW_ADMIN_PASSWORD || '');
+  if (username && password) {
+    return { username, password };
+  }
+  return null;
+}
+
+function timingSafeMatch(a, b) {
+  const digestA = crypto.createHash('sha256').update(String(a)).digest();
+  const digestB = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(digestA, digestB);
+}
+
+function issueUserSession(req, res, user) {
+  if (req.sessionToken) {
+    destroySessionToken(req.sessionToken);
+  }
+  const { token, sessionData } = createUserSession(user);
+  req.session = sessionData;
+  req.sessionToken = token;
+  setSessionCookie(req, res, token);
+  return token;
 }
 
 export async function getSetupStatus(req, res) {
   try {
+    if (getConfiguredAdminCreds()) {
+      return res.json({ success: true, hasAdmin: true });
+    }
     const db = await getDb();
     const [rows] = await db.execute("SELECT COUNT(*) AS count FROM users WHERE role = 'admin'");
     const count = Number(rows[0]?.count || 0);
@@ -47,18 +61,23 @@ export async function getSetupStatus(req, res) {
 
 export async function setupFirstAdmin(req, res) {
   try {
+    if (getConfiguredAdminCreds()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Administrator credentials are already configured.',
+      });
+    }
+
     const db = await getDb();
     const [existingRows] = await db.execute("SELECT COUNT(*) AS count FROM users WHERE role = 'admin'");
     if (Number(existingRows[0]?.count || 0) > 0) {
       return res.status(403).json({
         success: false,
-        message: 'An administrator account already exists. Please use the admin login form.',
+        message: 'An administrator account already exists. Please sign in with your username and password.',
       });
     }
 
-    const username = sanitizeText(req.body.username, 60).toLowerCase();
-    const fullName = sanitizeText(req.body.full_name, 120);
-    const email = sanitizeText(req.body.email, 120).toLowerCase();
+    const username = sanitizeText(req.body.username || '', 60).toLowerCase();
     const password = String(req.body.password || '');
 
     if (!/^[a-z0-9_.-]{3,30}$/.test(username)) {
@@ -67,12 +86,6 @@ export async function setupFirstAdmin(req, res) {
         message: 'Username must be 3–30 characters using letters, numbers, dots, hyphens, or underscores.',
       });
     }
-    if (fullName.length < 2) {
-      return res.status(400).json({ success: false, message: 'Full name is required.' });
-    }
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
-    }
     if (password.length < 8) {
       return res.status(400).json({
         success: false,
@@ -80,43 +93,40 @@ export async function setupFirstAdmin(req, res) {
       });
     }
 
-    const [dupRows] = await db.execute('SELECT user_id FROM users WHERE email = ? OR username = ?', [
-      email,
-      username,
-    ]);
+    const [dupRows] = await db.execute('SELECT user_id FROM users WHERE LOWER(username) = ?', [username]);
     if (dupRows.length > 0) {
       return res.status(409).json({
         success: false,
-        message: 'Username or email is already in use.',
+        message: 'Username is already in use.',
       });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
     const [result] = await db.execute(
       `INSERT INTO users (username, full_name, email, phone, password_hash, role, account_status)
-       VALUES (?, ?, ?, NULL, ?, 'admin', 'active')`,
-      [username, fullName, email, passwordHash]
+       VALUES (?, 'Administrator', NULL, NULL, ?, 'admin', 'active')`,
+      [username, passwordHash]
     );
 
     const newUser = {
       user_id: result.insertId,
       username,
-      full_name: fullName,
-      email,
+      full_name: 'Administrator',
+      email: null,
       phone: null,
       role: 'admin',
       account_status: 'active',
     };
-    await saveUserSession(req, newUser);
+    const token = issueUserSession(req, res, newUser);
 
     return res.status(201).json({
       success: true,
       message: 'Administrator account created and signed in.',
+      token,
       user: {
         user_id: newUser.user_id,
         username,
-        fullName,
-        email,
+        fullName: newUser.full_name,
         role: 'admin',
       },
     });
@@ -233,7 +243,7 @@ export async function registerDonorAccount(req, res) {
       ]
     );
 
-    await saveUserSession(req, {
+    const token = issueUserSession(req, res, {
       user_id: userId,
       username: null,
       full_name: fullName,
@@ -246,6 +256,7 @@ export async function registerDonorAccount(req, res) {
     return res.status(201).json({
       success: true,
       message: 'Donor account created successfully.',
+      token,
       redirectUrl: '/donor-dashboard.html',
     });
   } catch (err) {
@@ -300,7 +311,7 @@ export async function registerPatientAccount(req, res) {
       [fullName, email, formattedPhone, passwordHash]
     );
 
-    await saveUserSession(req, {
+    const token = issueUserSession(req, res, {
       user_id: userRes.insertId,
       username: null,
       full_name: fullName,
@@ -313,6 +324,7 @@ export async function registerPatientAccount(req, res) {
     return res.status(201).json({
       success: true,
       message: 'Patient account created successfully.',
+      token,
       redirectUrl: '/patient-dashboard.html',
     });
   } catch (err) {
@@ -325,8 +337,113 @@ export function createRoleLoginHandler(expectedRole) {
   return async (req, res) => {
     try {
       const password = String(req.body.password || '');
-      const rawIdentifier = sanitizeText(req.body.identifier || req.body.username || req.body.email || '', 120);
+      const db = await getDb();
 
+      if (expectedRole === 'admin') {
+        const username = sanitizeText(req.body.username || '', 60).toLowerCase();
+        if (!username || !password) {
+          return res.status(400).json({
+            success: false,
+            message: 'Please enter your username and password.',
+          });
+        }
+
+        const envAdmin = getConfiguredAdminCreds();
+        if (envAdmin && username === envAdmin.username) {
+          if (!timingSafeMatch(password, envAdmin.password)) {
+            return res.status(401).json({
+              success: false,
+              message: 'Invalid username or password.',
+            });
+          }
+
+          const [existingAdminRows] = await db.execute(
+            `SELECT user_id, username, full_name, email, phone, role, account_status
+             FROM users
+             WHERE role = 'admin' AND LOWER(username) = ?`,
+            [envAdmin.username]
+          );
+
+          let adminUser = existingAdminRows[0];
+          if (!adminUser) {
+            const passwordHash = await bcrypt.hash(envAdmin.password, 12);
+            const [insertRes] = await db.execute(
+              `INSERT INTO users (username, full_name, email, phone, password_hash, role, account_status)
+               VALUES (?, 'Administrator', NULL, NULL, ?, 'admin', 'active')`,
+              [envAdmin.username, passwordHash]
+            );
+            adminUser = {
+              user_id: insertRes.insertId,
+              username: envAdmin.username,
+              full_name: 'Administrator',
+              email: null,
+              phone: null,
+              role: 'admin',
+              account_status: 'active',
+            };
+          }
+
+          const token = issueUserSession(req, res, adminUser);
+          return res.json({
+            success: true,
+            message: 'Login successful.',
+            token,
+            redirectUrl: '/admin-dashboard.html',
+            user: {
+              user_id: adminUser.user_id,
+              role: 'admin',
+              fullName: adminUser.full_name,
+              username: adminUser.username,
+            },
+          });
+        }
+
+        const [adminRows] = await db.execute(
+          `SELECT user_id, username, full_name, email, phone, password_hash, role, account_status
+           FROM users
+           WHERE role = 'admin' AND LOWER(username) = ?`,
+          [username]
+        );
+
+        if (!adminRows || adminRows.length === 0) {
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid username or password.',
+          });
+        }
+
+        const adminUser = adminRows[0];
+        const matches = await bcrypt.compare(password, adminUser.password_hash);
+        if (!matches) {
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid username or password.',
+          });
+        }
+
+        if (adminUser.account_status === 'rejected') {
+          return res.status(403).json({
+            success: false,
+            message: 'Your account has been deactivated.',
+          });
+        }
+
+        const token = issueUserSession(req, res, adminUser);
+        return res.json({
+          success: true,
+          message: 'Login successful.',
+          token,
+          redirectUrl: '/admin-dashboard.html',
+          user: {
+            user_id: adminUser.user_id,
+            role: 'admin',
+            fullName: adminUser.full_name,
+            username: adminUser.username,
+          },
+        });
+      }
+
+      const rawIdentifier = sanitizeText(req.body.identifier || req.body.email || '', 120);
       if (!rawIdentifier || !password) {
         return res.status(400).json({
           success: false,
@@ -334,30 +451,17 @@ export function createRoleLoginHandler(expectedRole) {
         });
       }
 
-      const db = await getDb();
-      let rows = [];
+      // Donor or Patient: email OR 10-digit Indian mobile number
+      const emailKey = rawIdentifier.toLowerCase();
+      const digits = normalizeIndianPhone(rawIdentifier);
+      const formattedPhone = isValidIndianPhone(digits) ? `+91 ${digits}` : '__no_phone__';
 
-      if (expectedRole === 'admin') {
-        const key = rawIdentifier.toLowerCase();
-        [rows] = await db.execute(
-          `SELECT user_id, username, full_name, email, phone, password_hash, role, account_status
-           FROM users
-           WHERE role = 'admin' AND (username = ? OR email = ?)`,
-          [key, key]
-        );
-      } else {
-        // Donor or Patient: email OR 10-digit Indian mobile number
-        const emailKey = rawIdentifier.toLowerCase();
-        const digits = normalizeIndianPhone(rawIdentifier);
-        const formattedPhone = isValidIndianPhone(digits) ? `+91 ${digits}` : '__no_phone__';
-
-        [rows] = await db.execute(
-          `SELECT user_id, username, full_name, email, phone, password_hash, role, account_status
-           FROM users
-           WHERE role = ? AND (email = ? OR phone = ?)`,
-          [expectedRole, emailKey, formattedPhone]
-        );
-      }
+      const [rows] = await db.execute(
+        `SELECT user_id, username, full_name, email, phone, password_hash, role, account_status
+         FROM users
+         WHERE role = ? AND (email = ? OR phone = ?)`,
+        [expectedRole, emailKey, formattedPhone]
+      );
 
       if (!rows || rows.length === 0) {
         return res.status(401).json({
@@ -389,7 +493,7 @@ export function createRoleLoginHandler(expectedRole) {
         });
       }
 
-      await saveUserSession(req, user);
+      const token = issueUserSession(req, res, user);
 
       const redirectMap = {
         donor: '/donor-dashboard.html',
@@ -400,6 +504,7 @@ export function createRoleLoginHandler(expectedRole) {
       return res.json({
         success: true,
         message: 'Login successful.',
+        token,
         redirectUrl: redirectMap[user.role],
         user: {
           user_id: user.user_id,
@@ -419,18 +524,11 @@ export function createRoleLoginHandler(expectedRole) {
 export const login = createRoleLoginHandler('admin');
 
 export function logout(req, res) {
-  if (!req.session) {
-    return res.json({ success: true, message: 'Logged out.' });
+  if (req.sessionToken) {
+    destroySessionToken(req.sessionToken);
   }
-
-  req.session.destroy((err) => {
-    if (err) {
-      console.error('logout error:', err);
-      return res.status(500).json({ success: false, message: 'Failed to log out.' });
-    }
-    res.clearCookie('lifeflow.sid');
-    return res.json({ success: true, message: 'Logged out successfully.' });
-  });
+  clearSessionCookie(req, res);
+  return res.json({ success: true, message: 'Logged out successfully.' });
 }
 
 export function getCurrentUser(req, res) {

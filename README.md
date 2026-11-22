@@ -129,12 +129,15 @@ Run:
 npm install
 ```
 
-### 8. Create an Administrator Account Using the Terminal
-LifeFlow has **no** default or hardcoded administrator credentials. Create your admin account securely via:
+### 8. Configure or Create Administrator Credentials (Username & Password Only)
+LifeFlow has **no** hardcoded administrator credentials. You can configure admin credentials using **only a username and password** in any of three ways:
+1. **First-Time Web Setup**: Open `http://localhost:3000/admin-login.html` when no admin exists and enter your desired username and password (minimum 8 characters).
+2. **Environment Variables (`.env`)**: Set `LIFEFLOW_ADMIN_USERNAME` and `LIFEFLOW_ADMIN_PASSWORD` in `.env` (or Settings → Secrets).
+3. **Terminal Script**: Run:
 ```bash
 node create-admin.js
 ```
-Follow the prompts to enter username, full name, email, and password (minimum 8 characters). Passwords are hashed using `bcrypt` before saving to MySQL.
+Follow the prompts to enter a username and password (minimum 8 characters). Passwords are hashed using `bcrypt` before saving to MySQL.
 
 ### 9. Start the Server
 Run:

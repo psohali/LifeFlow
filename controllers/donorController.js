@@ -116,6 +116,26 @@ export async function registerDonor(req, res) {
 
 export async function getAllDonors(req, res) {
   try {
+    const q = sanitizeText(req.query.q || '', 100).toLowerCase();
+    const bloodGroup = sanitizeText(req.query.blood_group || '', 5);
+
+    const conditions = [];
+    const params = [];
+
+    if (q) {
+      const pattern = `%${q}%`;
+      conditions.push(
+        '(LOWER(d.full_name) LIKE ? OR LOWER(d.blood_group) LIKE ? OR LOWER(d.city) LIKE ? OR LOWER(d.state) LIKE ?)'
+      );
+      params.push(pattern, pattern, pattern, pattern);
+    }
+
+    if (bloodGroup && VALID_BLOOD_GROUPS.includes(bloodGroup)) {
+      conditions.push('d.blood_group = ?');
+      params.push(bloodGroup);
+    }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const db = await getDb();
     const [rows] = await db.execute(
       `SELECT d.id, d.user_id, d.full_name, d.age, d.gender, d.blood_group, d.phone, d.email,
@@ -123,7 +143,9 @@ export async function getAllDonors(req, res) {
               u.account_status
        FROM donors d
        LEFT JOIN users u ON d.user_id = u.user_id
-       ORDER BY d.id DESC`
+       ${whereClause}
+       ORDER BY d.id DESC`,
+      params
     );
 
     return res.json({ success: true, donors: rows });
