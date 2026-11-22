@@ -70,36 +70,172 @@
               for academic testing. Administrators can update stock via the Admin Dashboard.
             </div>
           </div>
-          <button type="button" id="refreshInventoryBtn" class="btn btn-outline btn-sm">
-            Refresh Stock
-          </button>
+          <div class="inline-controls">
+            <button type="button" id="refreshInventoryBtn" class="btn btn-outline btn-sm">
+              Refresh Stock
+            </button>
+            <a href="/request.html" class="btn btn-primary btn-sm">Request Blood</a>
+          </div>
         </div>
 
         <div id="availabilityAlert" class="alert hidden" role="status"></div>
 
-        <div class="inventory-summary-bar">
-          <div class="inventory-summary-meta">
-            <span>Total Sample Stock: <strong id="totalUnitsDisplay" class="mono">—</strong></span>
-            <span aria-hidden="true">·</span>
-            <span>Last Updated (IST): <strong id="lastUpdatedDisplay" class="tabular-nums">—</strong></span>
+        <!-- Live Stock Summary KPIs -->
+        <div class="stats-grid" style="margin-bottom: 22px;">
+          <div class="stat-card">
+            <div class="stat-label">Total Sample Stock</div>
+            <div id="totalUnitsDisplay" class="stat-value">—</div>
           </div>
-          <a href="/request.html" class="btn btn-primary btn-sm">Request Blood</a>
+          <div class="stat-card">
+            <div class="stat-label">Available Groups (10+ u)</div>
+            <div id="availHealthyGroups" class="stat-value status-available">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Low / Empty Groups</div>
+            <div id="availLowGroups" class="stat-value status-low">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Last Updated (IST)</div>
+            <div id="lastUpdatedDisplay" class="stat-value tabular-nums" style="font-size: 1.05rem; line-height: 1.35;">—</div>
+          </div>
+        </div>
+
+        <!-- Quick One-Tap Blood Group Selector & Stock Filter -->
+        <div class="filter-bar" aria-label="Filter Blood Stock">
+          <div class="filter-field" style="flex: 2 1 360px;">
+            <label>Select Blood Group</label>
+            <div id="availBloodChips" class="blood-selector-strip" role="group" aria-label="Blood Group Quick Filter">
+              <button type="button" class="blood-chip-btn active" data-group="">All</button>
+              <button type="button" class="blood-chip-btn" data-group="A+">A+</button>
+              <button type="button" class="blood-chip-btn" data-group="A-">A-</button>
+              <button type="button" class="blood-chip-btn" data-group="B+">B+</button>
+              <button type="button" class="blood-chip-btn" data-group="B-">B-</button>
+              <button type="button" class="blood-chip-btn" data-group="AB+">AB+</button>
+              <button type="button" class="blood-chip-btn" data-group="AB-">AB-</button>
+              <button type="button" class="blood-chip-btn" data-group="O+">O+</button>
+              <button type="button" class="blood-chip-btn" data-group="O-">O-</button>
+            </div>
+          </div>
+          <div class="filter-field" style="max-width: 220px;">
+            <label for="availStatusFilter">Stock Level</label>
+            <select id="availStatusFilter" class="form-select">
+              <option value="">All Stock Levels</option>
+              <option value="available">Available (10+ units)</option>
+              <option value="low">Low Stock (&lt; 10 units)</option>
+              <option value="empty">Out of Stock (0 units)</option>
+            </select>
+          </div>
+          <div>
+            <button type="button" id="availFilterResetBtn" class="btn btn-outline btn-sm">Reset</button>
+          </div>
         </div>
 
         <div id="bloodInventoryGrid" class="blood-grid" aria-live="polite">
           <div class="surface-card">Loading blood inventory...</div>
         </div>
+
+        <!-- Interactive Blood Compatibility Guide -->
+        <section class="surface-card compat-section" aria-labelledby="compatHeading">
+          <div class="compat-header">
+            <div>
+              <h2 id="compatHeading" style="font-size: 1.25rem; margin-bottom: 4px;">
+                Red Cell Compatibility &amp; Stock Lookup
+              </h2>
+              <p style="font-size: 0.92rem;">
+                Select a patient's blood group to see compatible donor groups and their current sample stock.
+              </p>
+            </div>
+            <div style="min-width: 200px;">
+              <label for="compatGroupSelect" class="form-label" style="display: block; margin-bottom: 4px;">
+                Patient Blood Group
+              </label>
+              <select id="compatGroupSelect" class="form-select">
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="compat-grid">
+            <div class="compat-box">
+              <h3>Safe Donor Groups (<span id="compatReceiveLabel">O+</span> Can Receive From)</h3>
+              <div id="compatReceiveTags" class="compat-tags"></div>
+            </div>
+            <div class="compat-box">
+              <h3>Recipient Groups (<span id="compatDonateLabel">O+</span> Can Donate To)</h3>
+              <div id="compatDonateTags" class="compat-tags"></div>
+            </div>
+          </div>
+
+          <p class="field-hint" style="margin-top: 14px;">
+            Note: Compatibility chart is for general educational reference. Clinical cross-matching
+            at an accredited Indian blood bank is mandatory prior to transfusion.
+          </p>
+        </section>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <div class="container footer-inner">
-      <div><strong>LifeFlow</strong> · Blood Bank Management System (India)</div>
-      <div class="footer-links">
-        <a href="/donor-login.html">Donor Login</a>
-        <a href="/patient-login.html">Patient Login</a>
-        <a href="/admin-login.html">Admin Login</a>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="/index.html" class="brand-link" aria-label="LifeFlow Home">
+            <svg class="brand-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <path d="M16 3C16 3 6 14.2 6 20.5C6 26.02 10.48 30 16 30C21.52 30 26 26.02 26 20.5C26 14.2 16 3 16 3Z" fill="#B91C1C" />
+              <path d="M16 14V24M11 19H21" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+            <span>LifeFlow</span>
+          </a>
+          <p class="footer-brand-desc">
+            Indian Blood Bank Management System connecting voluntary blood donors, patients, and hospital blood banks with safe, transparent coordination.
+          </p>
+          <p class="footer-demo-note">
+            Sample Demonstration Inventory – Not Live Hospital Stock.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h3 class="footer-heading">Quick Links</h3>
+          <ul class="footer-list">
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about.html">About LifeFlow</a></li>
+            <li><a href="/availability.html">Blood Availability</a></li>
+            <li><a href="/donate.html">Donate Blood</a></li>
+            <li><a href="/request.html">Request Blood</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h3 class="footer-heading">Role Portals</h3>
+          <ul class="footer-list">
+            <li><a href="/login.html">Role Login Portal</a></li>
+            <li><a href="/donor-login.html">Donor Login &amp; Sign Up</a></li>
+            <li><a href="/patient-login.html">Patient Login &amp; Tracking</a></li>
+            <li><a href="/admin-login.html">Administrator Login</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h3 class="footer-heading">India Helpline &amp; Contact</h3>
+          <ul class="footer-list">
+            <li class="footer-contact-item"><strong>Blood Helpline:</strong> +91 1800-114-770</li>
+            <li class="footer-contact-item"><strong>Emergency (India):</strong> 112 · 24x7 Support</li>
+            <li class="footer-contact-item"><strong>Email:</strong> support@lifeflowbloodbank.in</li>
+            <li class="footer-contact-item"><strong>Centre:</strong> 14, Ansari Nagar East, New Delhi, Delhi – 110029</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 LifeFlow – Blood Bank Management System (India).</div>
+        <div>IST (Asia/Kolkata) · Date Format: DD-MM-YYYY</div>
       </div>
     </div>
   </footer>

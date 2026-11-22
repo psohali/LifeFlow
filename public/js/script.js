@@ -91,6 +91,7 @@ function showAlert(containerId, type, message) {
   el.className = `alert alert-${type}`;
   el.textContent = message;
   el.classList.remove('hidden');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function hideAlert(containerId) {
@@ -109,6 +110,95 @@ function initMobileMenu() {
     const isOpen = drawer.classList.toggle('open');
     btn.setAttribute('aria-expanded', String(isOpen));
   });
+
+  drawer.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => {
+      drawer.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    });
+  });
+}
+
+function initPasswordToggles(scope = document) {
+  const inputs = scope.querySelectorAll('input[type="password"]');
+  inputs.forEach((input) => {
+    if (input.parentElement?.classList.contains('password-field-wrap')) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'password-field-wrap';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'password-toggle-btn';
+    toggle.textContent = 'Show';
+    toggle.setAttribute('aria-label', 'Show password');
+    toggle.setAttribute('aria-pressed', 'false');
+
+    toggle.addEventListener('click', () => {
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      toggle.textContent = showing ? 'Show' : 'Hide';
+      toggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+      toggle.setAttribute('aria-pressed', String(!showing));
+    });
+
+    wrap.appendChild(toggle);
+  });
+}
+
+function initNumericInputAssist(scope = document) {
+  scope.querySelectorAll('input[name="phone"]').forEach((input) => {
+    if (input.dataset.numBound) return;
+    input.dataset.numBound = '1';
+    input.addEventListener('input', () => {
+      const cleaned = input.value.replace(/[^\d+\s-]/g, '');
+      if (cleaned !== input.value) input.value = cleaned;
+    });
+    input.addEventListener('blur', () => {
+      const digits = normalizePhone(input.value);
+      if (digits.length === 10) input.value = digits;
+    });
+  });
+
+  scope.querySelectorAll('input[name="pin_code"]').forEach((input) => {
+    if (input.dataset.numBound) return;
+    input.dataset.numBound = '1';
+    input.addEventListener('input', () => {
+      const digits = input.value.replace(/\D/g, '').slice(0, 6);
+      if (digits !== input.value) input.value = digits;
+    });
+  });
+}
+
+async function initHeaderSessionStatus() {
+  const headerLoginLink = document.querySelector('.header-actions a[href="/login.html"]');
+  const mobileLoginLink = document.querySelector('#mobileDrawer a[href="/login.html"]');
+  if (!headerLoginLink && !mobileLoginLink) return;
+
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include', cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.authenticated || !data.user) return;
+
+    const dashMap = {
+      donor: { href: '/donor-dashboard.html', label: 'Donor Dashboard' },
+      patient: { href: '/patient-dashboard.html', label: 'Patient Dashboard' },
+      admin: { href: '/admin-dashboard.html', label: 'Admin Dashboard' },
+    };
+    const info = dashMap[data.user.role];
+    if (!info) return;
+
+    [headerLoginLink, mobileLoginLink].forEach((el) => {
+      if (!el) return;
+      el.href = info.href;
+      el.textContent = info.label;
+    });
+  } catch {
+    // Keep default Login button when unauthenticated
+  }
 }
 
 function populateStateDropdowns() {
@@ -159,9 +249,31 @@ function setupAuthSwitcher() {
   });
 }
 
-async function fetchInventoryIntoGrid(gridId, totalId, updatedId, alertId) {
+const BLOOD_GROUP_NOTES = {
+  'O+': 'Most common group in India',
+  'O-': 'Universal red cell donor',
+  'A+': 'Second most common in India',
+  'A-': 'Compatible with A & AB patients',
+  'B+': 'Widely needed across India',
+  'B-': 'Compatible with B & AB patients',
+  'AB+': 'Universal red cell recipient',
+  'AB-': 'Rare blood group',
+};
+
+const RED_CELL_COMPATIBILITY = {
+  'O-': { receiveFrom: ['O-'], donateTo: ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'] },
+  'O+': { receiveFrom: ['O-', 'O+'], donateTo: ['O+', 'A+', 'B+', 'AB+'] },
+  'A-': { receiveFrom: ['O-', 'A-'], donateTo: ['A-', 'A+', 'AB-', 'AB+'] },
+  'A+': { receiveFrom: ['O-', 'O+', 'A-', 'A+'], donateTo: ['A+', 'AB+'] },
+  'B-': { receiveFrom: ['O-', 'B-'], donateTo: ['B-', 'B+', 'AB-', 'AB+'] },
+  'B+': { receiveFrom: ['O-', 'O+', 'B-', 'B+'], donateTo: ['B+', 'AB+'] },
+  'AB-': { receiveFrom: ['O-', 'A-', 'B-', 'AB-'], donateTo: ['AB-', 'AB+'] },
+  'AB+': { receiveFrom: ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'], donateTo: ['AB+'] },
+};
+
+async function fetchInventoryIntoGrid(gridId, totalId, updatedId, alertId, filterOptions = {}) {
   const grid = document.getElementById(gridId);
-  if (!grid) return;
+  if (!grid) return null;
 
   const totalEl = totalId ? document.getElementById(totalId) : null;
   const updatedEl = updatedId ? document.getElementById(updatedId) : null;
@@ -169,13 +281,25 @@ async function fetchInventoryIntoGrid(gridId, totalId, updatedId, alertId) {
   if (alertId) hideAlert(alertId);
 
   try {
-    const res = await fetch('/api/inventory', { credentials: 'include' });
+    const res = await fetch('/api/inventory', { credentials: 'include', cache: 'no-store' });
     const data = await res.json();
     if (!res.ok || !data.success) {
       throw new Error(data.message || 'Could not load blood inventory.');
     }
 
     if (totalEl) totalEl.textContent = `${data.totalUnits} Units`;
+
+    const healthyCount = data.inventory.filter((item) => Number(item.units_available) >= 10).length;
+    const lowOrEmptyCount = data.inventory.filter((item) => Number(item.units_available) < 10).length;
+
+    if (filterOptions.healthyId) {
+      const hEl = document.getElementById(filterOptions.healthyId);
+      if (hEl) hEl.textContent = `${healthyCount} / 8`;
+    }
+    if (filterOptions.lowId) {
+      const lEl = document.getElementById(filterOptions.lowId);
+      if (lEl) lEl.textContent = `${lowOrEmptyCount} / 8`;
+    }
 
     const latestTimestamp = data.inventory
       .map((item) => item.updated_at)
@@ -186,10 +310,35 @@ async function fetchInventoryIntoGrid(gridId, totalId, updatedId, alertId) {
       updatedEl.textContent = latestTimestamp ? formatISTDateTime(latestTimestamp) : '—';
     }
 
+    const filterGroup = filterOptions.bloodGroup || '';
+    const filterStatus = filterOptions.stockStatus || '';
+    const showRequestAction = Boolean(filterOptions.showRequestAction);
+
+    const filteredItems = data.inventory.filter((item) => {
+      const units = Number(item.units_available);
+      if (filterGroup && item.blood_group !== filterGroup) return false;
+      if (filterStatus === 'available' && units < 10) return false;
+      if (filterStatus === 'low' && (units === 0 || units >= 10)) return false;
+      if (filterStatus === 'empty' && units !== 0) return false;
+      return true;
+    });
+
     grid.replaceChildren();
-    data.inventory.forEach((item) => {
+    if (filteredItems.length === 0) {
+      const emptyCard = document.createElement('div');
+      emptyCard.className = 'surface-card empty-state';
+      emptyCard.style.gridColumn = '1 / -1';
+      emptyCard.textContent = 'No blood groups match the selected stock filter.';
+      grid.appendChild(emptyCard);
+      return data.inventory;
+    }
+
+    filteredItems.forEach((item) => {
+      const units = Number(item.units_available);
+      const stateKey = units === 0 ? 'empty' : units < 10 ? 'low' : 'available';
+
       const card = document.createElement('div');
-      card.className = 'blood-card';
+      card.className = `blood-card blood-card-${stateKey}`;
 
       const top = document.createElement('div');
       top.className = 'blood-card-top';
@@ -199,36 +348,65 @@ async function fetchInventoryIntoGrid(gridId, totalId, updatedId, alertId) {
       groupLabel.textContent = item.blood_group;
 
       const status = document.createElement('span');
-      const units = Number(item.units_available);
-      if (units === 0) {
-        status.className = 'status-text status-empty';
-        status.textContent = 'Out of Stock';
-      } else if (units < 10) {
-        status.className = 'status-text status-low';
-        status.textContent = 'Low Stock';
-      } else {
-        status.className = 'status-text status-available';
-        status.textContent = 'Available';
-      }
+      status.className = `status-badge status-${stateKey}`;
+      status.textContent =
+        stateKey === 'empty' ? 'Out of Stock' : stateKey === 'low' ? 'Low Stock' : 'Available';
 
       top.appendChild(groupLabel);
       top.appendChild(status);
 
-      const unitsEl = document.createElement('div');
+      const unitsRow = document.createElement('div');
+      unitsRow.className = 'blood-units-row';
+
+      const unitsEl = document.createElement('span');
       unitsEl.className = 'blood-units-value';
       unitsEl.textContent = String(units);
 
-      const captionEl = document.createElement('div');
+      const captionEl = document.createElement('span');
       captionEl.className = 'blood-units-caption';
-      captionEl.textContent = units === 1 ? 'Sample unit available' : 'Sample units available';
+      captionEl.textContent = units === 1 ? 'unit' : 'units';
 
-      card.appendChild(top);
-      card.appendChild(unitsEl);
-      card.appendChild(captionEl);
+      unitsRow.append(unitsEl, captionEl);
+
+      const meterTrack = document.createElement('div');
+      meterTrack.className = 'blood-meter-track';
+      const meterFill = document.createElement('div');
+      meterFill.className = `blood-meter-fill fill-${stateKey}`;
+      const fillPct = units === 0 ? 0 : Math.min(100, Math.max(8, Math.round((units / 30) * 100)));
+      meterFill.style.width = `${fillPct}%`;
+      meterTrack.appendChild(meterFill);
+
+      const noteEl = document.createElement('div');
+      noteEl.className = 'blood-card-note';
+      noteEl.textContent = BLOOD_GROUP_NOTES[item.blood_group] || 'Sample demonstration stock';
+
+      card.append(top, unitsRow, meterTrack, noteEl);
+
+      if (showRequestAction) {
+        const footer = document.createElement('div');
+        footer.className = 'blood-card-footer';
+
+        const updatedSpan = document.createElement('span');
+        updatedSpan.className = 'blood-card-updated';
+        updatedSpan.textContent = item.updated_at ? formatISTDateTime(item.updated_at).split(',')[0] : 'IST';
+
+        const reqLink = document.createElement('a');
+        reqLink.href = `/request.html?blood_group=${encodeURIComponent(item.blood_group)}`;
+        reqLink.className = 'service-link';
+        reqLink.style.marginTop = '0';
+        reqLink.textContent = `Request ${item.blood_group} \u2192`;
+
+        footer.append(updatedSpan, reqLink);
+        card.appendChild(footer);
+      }
+
       grid.appendChild(card);
     });
+
+    return data.inventory;
   } catch (err) {
     if (alertId) showAlert(alertId, 'error', err.message || 'Unable to load inventory.');
+    return null;
   }
 }
 
@@ -239,13 +417,107 @@ async function initAvailabilityPage() {
   const grid = document.getElementById('bloodInventoryGrid');
   if (!grid) return;
 
+  const chipStrip = document.getElementById('availBloodChips');
+  const statusFilter = document.getElementById('availStatusFilter');
+  const resetBtn = document.getElementById('availFilterResetBtn');
   const refreshBtn = document.getElementById('refreshInventoryBtn');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', () =>
-      fetchInventoryIntoGrid('bloodInventoryGrid', 'totalUnitsDisplay', 'lastUpdatedDisplay', 'availabilityAlert')
+  const compatSelect = document.getElementById('compatGroupSelect');
+
+  let selectedGroup = '';
+  let latestInventory = [];
+
+  function renderCompatibility(group) {
+    const receiveEl = document.getElementById('compatReceiveTags');
+    const donateEl = document.getElementById('compatDonateTags');
+    const receiveLabel = document.getElementById('compatReceiveLabel');
+    const donateLabel = document.getElementById('compatDonateLabel');
+    if (!receiveEl || !donateEl) return;
+
+    const info = RED_CELL_COMPATIBILITY[group] || RED_CELL_COMPATIBILITY['O+'];
+    if (receiveLabel) receiveLabel.textContent = group;
+    if (donateLabel) donateLabel.textContent = group;
+
+    const unitsByGroup = new Map(
+      latestInventory.map((item) => [item.blood_group, Number(item.units_available)])
     );
+
+    function buildTags(targetEl, groups) {
+      targetEl.replaceChildren();
+      groups.forEach((g) => {
+        const tag = document.createElement('span');
+        tag.className = 'compat-tag';
+
+        const name = document.createElement('span');
+        name.textContent = g;
+
+        const units = unitsByGroup.get(g);
+        const unitSpan = document.createElement('span');
+        unitSpan.className = 'compat-tag-units';
+        unitSpan.textContent = typeof units === 'number' ? `${units}u` : '—';
+
+        tag.append(name, unitSpan);
+        targetEl.appendChild(tag);
+      });
+    }
+
+    buildTags(receiveEl, info.receiveFrom);
+    buildTags(donateEl, info.donateTo);
   }
-  await fetchInventoryIntoGrid('bloodInventoryGrid', 'totalUnitsDisplay', 'lastUpdatedDisplay', 'availabilityAlert');
+
+  async function loadAvailability() {
+    const items = await fetchInventoryIntoGrid(
+      'bloodInventoryGrid',
+      'totalUnitsDisplay',
+      'lastUpdatedDisplay',
+      'availabilityAlert',
+      {
+        bloodGroup: selectedGroup,
+        stockStatus: statusFilter ? statusFilter.value : '',
+        showRequestAction: true,
+        healthyId: 'availHealthyGroups',
+        lowId: 'availLowGroups',
+      }
+    );
+    if (Array.isArray(items)) {
+      latestInventory = items;
+      renderCompatibility(compatSelect ? compatSelect.value : 'O+');
+    }
+  }
+
+  if (chipStrip) {
+    chipStrip.querySelectorAll('.blood-chip-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectedGroup = btn.dataset.group || '';
+        chipStrip.querySelectorAll('.blood-chip-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (selectedGroup && compatSelect) {
+          compatSelect.value = selectedGroup;
+          renderCompatibility(selectedGroup);
+        }
+        loadAvailability();
+      });
+    });
+  }
+
+  if (compatSelect) {
+    compatSelect.addEventListener('change', () => renderCompatibility(compatSelect.value));
+  }
+  if (refreshBtn) refreshBtn.addEventListener('click', loadAvailability);
+  if (statusFilter) statusFilter.addEventListener('change', loadAvailability);
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      selectedGroup = '';
+      if (chipStrip) {
+        chipStrip.querySelectorAll('.blood-chip-btn').forEach((b) => {
+          b.classList.toggle('active', (b.dataset.group || '') === '');
+        });
+      }
+      if (statusFilter) statusFilter.value = '';
+      loadAvailability();
+    });
+  }
+
+  await loadAvailability();
 }
 
 /* ==========================================================================
@@ -262,12 +534,29 @@ function initDonorForm() {
     hideAlert('donorAlert');
 
     const submitBtn = document.getElementById('donorSubmitBtn');
+    const fullName = form.full_name.value.trim();
     const phoneDigits = normalizePhone(form.phone.value);
     const pinCode = form.pin_code.value.trim();
     const age = Number(form.age.value);
 
+    if (fullName.length < 2) {
+      showAlert('donorAlert', 'error', 'Please enter your full name.');
+      form.full_name.focus();
+      return;
+    }
     if (!Number.isInteger(age) || age < 18 || age > 65) {
       showAlert('donorAlert', 'error', 'Donor age must be between 18 and 65 years.');
+      form.age.focus();
+      return;
+    }
+    if (!form.gender.value) {
+      showAlert('donorAlert', 'error', 'Please select your gender.');
+      form.gender.focus();
+      return;
+    }
+    if (!form.blood_group.value) {
+      showAlert('donorAlert', 'error', 'Please select your blood group.');
+      form.blood_group.focus();
       return;
     }
     if (!isValidIndianMobile(phoneDigits)) {
@@ -276,15 +565,31 @@ function initDonorForm() {
         'error',
         'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.'
       );
+      form.phone.focus();
+      return;
+    }
+    if (!form.email.value.trim()) {
+      showAlert('donorAlert', 'error', 'Please enter your email address.');
+      form.email.focus();
+      return;
+    }
+    if (!form.house_street.value.trim() || !form.area.value.trim() || !form.city.value.trim() || !form.district.value.trim()) {
+      showAlert('donorAlert', 'error', 'Please complete House/Street, Area, City, and District.');
+      return;
+    }
+    if (!form.state.value) {
+      showAlert('donorAlert', 'error', 'Please select your Indian State or Union Territory.');
+      form.state.focus();
       return;
     }
     if (!isValidIndianPin(pinCode)) {
       showAlert('donorAlert', 'error', 'Please enter a valid 6-digit Indian PIN code.');
+      form.pin_code.focus();
       return;
     }
 
     const payload = {
-      full_name: form.full_name.value.trim(),
+      full_name: fullName,
       age,
       gender: form.gender.value,
       blood_group: form.blood_group.value,
@@ -332,35 +637,65 @@ function initRequestForm() {
   const form = document.getElementById('requestForm');
   if (!form) return;
 
+  const urlGroup = new URLSearchParams(window.location.search).get('blood_group');
+  if (urlGroup && Array.from(form.blood_group.options).some((opt) => opt.value === urlGroup)) {
+    form.blood_group.value = urlGroup;
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     hideAlert('requestAlert');
 
     const submitBtn = document.getElementById('requestSubmitBtn');
+    const patientName = form.patient_name.value.trim();
+    const requesterName = form.requester_name.value.trim();
     const phoneDigits = normalizePhone(form.phone.value);
     const unitsRequired = Number(form.units_required.value);
+    const hospitalName = form.hospital_name.value.trim();
+    const location = form.location.value.trim();
 
+    if (patientName.length < 2) {
+      showAlert('requestAlert', 'error', 'Please enter the patient name.');
+      form.patient_name.focus();
+      return;
+    }
+    if (requesterName.length < 2) {
+      showAlert('requestAlert', 'error', 'Please enter the requester name.');
+      form.requester_name.focus();
+      return;
+    }
     if (!isValidIndianMobile(phoneDigits)) {
       showAlert(
         'requestAlert',
         'error',
         'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.'
       );
+      form.phone.focus();
+      return;
+    }
+    if (!form.blood_group.value) {
+      showAlert('requestAlert', 'error', 'Please select the required blood group.');
+      form.blood_group.focus();
       return;
     }
     if (!Number.isInteger(unitsRequired) || unitsRequired < 1 || unitsRequired > 20) {
       showAlert('requestAlert', 'error', 'Units required must be between 1 and 20.');
+      form.units_required.focus();
+      return;
+    }
+    if (hospitalName.length < 2 || location.length < 2) {
+      showAlert('requestAlert', 'error', 'Please enter both the hospital name and city/location.');
       return;
     }
 
     const payload = {
-      patient_name: form.patient_name.value.trim(),
-      requester_name: form.requester_name.value.trim(),
+      patient_name: patientName,
+      requester_name: requesterName,
       phone: phoneDigits,
       blood_group: form.blood_group.value,
       units_required: unitsRequired,
-      hospital_name: form.hospital_name.value.trim(),
-      location: form.location.value.trim(),
+      hospital_name: hospitalName,
+      location,
       urgency: form.urgency.value,
     };
 
@@ -1123,6 +1458,8 @@ async function openAdminDashboardAfterAuth(token) {
   }
 
   currentMain.replaceWith(document.importNode(newMain, true));
+  initPasswordToggles(document);
+  initNumericInputAssist(document);
   await initAdminDashboard(token);
 }
 
@@ -1710,8 +2047,10 @@ async function initAdminDashboard(bearerToken = null) {
       tdSubmitted.textContent = formatISTDateTime(r.created_at);
 
       const tdStatus = document.createElement('td');
-      tdStatus.className = `status-text status-${r.status.toLowerCase()}`;
-      tdStatus.textContent = r.status;
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `status-badge status-${r.status.toLowerCase()}`;
+      statusBadge.textContent = r.status;
+      tdStatus.appendChild(statusBadge);
 
       const tdAction = document.createElement('td');
       const controls = document.createElement('div');
@@ -1999,6 +2338,21 @@ async function initAdminDashboard(bearerToken = null) {
     if (actionsEl) actionsEl.textContent = String(s.adminActionsCount ?? 0);
   }
 
+  dashboardRoot.querySelectorAll('[data-jump-tab]').forEach((cardBtn) => {
+    cardBtn.addEventListener('click', () => {
+      const targetTab = cardBtn.dataset.jumpTab;
+      const tabBtn = document.querySelector(`.tab-btn[data-tab="${targetTab}"]`);
+      if (tabBtn) tabBtn.click();
+
+      if (targetTab === 'panelRequests' && reqStatusFilter && 'jumpStatus' in cardBtn.dataset) {
+        reqStatusFilter.value = cardBtn.dataset.jumpStatus || '';
+        if (reqBloodFilter) reqBloodFilter.value = '';
+        if (reqUrgencyFilter) reqUrgencyFilter.value = '';
+        loadRequests();
+      }
+    });
+  });
+
   await Promise.all([
     loadStats(),
     loadDonors(),
@@ -2013,6 +2367,9 @@ async function initAdminDashboard(bearerToken = null) {
 
 document.addEventListener('DOMContentLoaded', () => {
   initMobileMenu();
+  initPasswordToggles(document);
+  initNumericInputAssist(document);
+  initHeaderSessionStatus();
   initAvailabilityPage();
   initDonorForm();
   initRequestForm();
