@@ -3,25 +3,17 @@ import crypto from 'crypto';
 
 /**
  * Idempotent Indian sample demonstration dataset for LifeFlow.
- * Populates donors, patients, blood requests, and request history ONLY when
- * the portal has no donors, patients, or blood requests yet.
+ * Populates a rich set of donors, patients, blood requests, and request history.
  */
 export async function seedSamplePortalData(db) {
   const [[donorCountRow]] = await db.execute('SELECT COUNT(*) AS count FROM donors');
   const [[requestCountRow]] = await db.execute('SELECT COUNT(*) AS count FROM blood_requests');
-  const [[portalUserRow]] = await db.execute(
-    "SELECT COUNT(*) AS count FROM users WHERE role IN ('donor', 'patient')"
-  );
 
-  if (
-    Number(donorCountRow?.count || 0) > 0 ||
-    Number(requestCountRow?.count || 0) > 0 ||
-    Number(portalUserRow?.count || 0) > 0
-  ) {
+  // If already sufficiently populated, ensure we have at least some pending requests for testing
+  if (Number(donorCountRow?.count || 0) >= 12 && Number(requestCountRow?.count || 0) >= 10) {
     return false;
   }
 
-  // Generate random non-reusable password hashes for demo accounts (no hardcoded passwords)
   const demoSecret = crypto.randomBytes(16).toString('hex');
   const demoHash = await bcrypt.hash(demoSecret, 10);
 
@@ -45,7 +37,6 @@ export async function seedSamplePortalData(db) {
       state: 'Maharashtra',
       pin_code: '400050',
       account_status: 'active',
-      createUser: true,
     },
     {
       full_name: 'Priya Nair',
@@ -61,7 +52,6 @@ export async function seedSamplePortalData(db) {
       state: 'Karnataka',
       pin_code: '560038',
       account_status: 'active',
-      createUser: true,
     },
     {
       full_name: 'Vikramaditya Singh',
@@ -77,7 +67,6 @@ export async function seedSamplePortalData(db) {
       state: 'Delhi',
       pin_code: '110017',
       account_status: 'active',
-      createUser: true,
     },
     {
       full_name: 'Sneha Deshmukh',
@@ -93,7 +82,6 @@ export async function seedSamplePortalData(db) {
       state: 'Maharashtra',
       pin_code: '411038',
       account_status: 'active',
-      createUser: true,
     },
     {
       full_name: 'Karthik Subramanian',
@@ -109,7 +97,6 @@ export async function seedSamplePortalData(db) {
       state: 'Tamil Nadu',
       pin_code: '600020',
       account_status: 'active',
-      createUser: true,
     },
     {
       full_name: 'Meera Patel',
@@ -125,7 +112,6 @@ export async function seedSamplePortalData(db) {
       state: 'Gujarat',
       pin_code: '380009',
       account_status: 'rejected',
-      createUser: true,
     },
     {
       full_name: 'Rohan Chatterjee',
@@ -140,8 +126,7 @@ export async function seedSamplePortalData(db) {
       district: 'North 24 Parganas',
       state: 'West Bengal',
       pin_code: '700091',
-      account_status: null,
-      createUser: false,
+      account_status: 'active',
     },
     {
       full_name: 'Ananya Reddy',
@@ -156,21 +141,80 @@ export async function seedSamplePortalData(db) {
       district: 'Hyderabad',
       state: 'Telangana',
       pin_code: '500033',
-      account_status: null,
-      createUser: false,
+      account_status: 'active',
+    },
+    {
+      full_name: 'Manish Malhotra',
+      age: 40,
+      gender: 'Male',
+      blood_group: 'O+',
+      phone: '+91 9815011223',
+      email: 'manish.m@example.in',
+      house_street: '65, Sector 17',
+      area: 'Chandigarh City',
+      city: 'Chandigarh',
+      district: 'Chandigarh',
+      state: 'Chandigarh',
+      pin_code: '160017',
+      account_status: 'active',
+    },
+    {
+      full_name: 'Divya Sundaram',
+      age: 30,
+      gender: 'Female',
+      blood_group: 'B+',
+      phone: '+91 9482155443',
+      email: 'divya.s@example.in',
+      house_street: '12, Race Course Road',
+      area: 'Coimbatore Central',
+      city: 'Coimbatore',
+      district: 'Coimbatore',
+      state: 'Tamil Nadu',
+      pin_code: '641018',
+      account_status: 'active',
+    },
+    {
+      full_name: 'Amitav Ghosh',
+      age: 45,
+      gender: 'Male',
+      blood_group: 'A+',
+      phone: '+91 9433221144',
+      email: 'amitav.g@example.in',
+      house_street: '45, Park Street',
+      area: 'Park Circus',
+      city: 'Kolkata',
+      district: 'Kolkata',
+      state: 'West Bengal',
+      pin_code: '700016',
+      account_status: 'active',
+    },
+    {
+      full_name: 'Swati Kulkarni',
+      age: 35,
+      gender: 'Female',
+      blood_group: 'O-',
+      phone: '+91 9823144556',
+      email: 'swati.k@example.in',
+      house_street: '78, FC Road',
+      area: 'Shivajinagar',
+      city: 'Pune',
+      district: 'Pune',
+      state: 'Maharashtra',
+      pin_code: '411004',
+      account_status: 'active',
     },
   ];
 
   for (const d of sampleDonors) {
-    let linkedUserId = null;
-    if (d.createUser) {
-      const [uRes] = await db.execute(
-        `INSERT INTO users (username, full_name, email, phone, password_hash, role, account_status)
-         VALUES (NULL, ?, ?, ?, ?, 'donor', ?)`,
-        [d.full_name, d.email, d.phone, demoHash, d.account_status]
-      );
-      linkedUserId = uRes.insertId;
-    }
+    const [existing] = await db.execute('SELECT id FROM donors WHERE email = ?', [d.email]);
+    if (existing.length > 0) continue;
+
+    const [uRes] = await db.execute(
+      `INSERT INTO users (username, full_name, email, phone, password_hash, role, account_status)
+       VALUES (NULL, ?, ?, ?, ?, 'donor', ?)`,
+      [d.full_name, d.email, d.phone, demoHash, d.account_status]
+    );
+    const linkedUserId = uRes.insertId;
 
     await db.execute(
       `INSERT INTO donors
@@ -195,40 +239,22 @@ export async function seedSamplePortalData(db) {
   }
 
   const samplePatients = [
-    {
-      full_name: 'Rajesh Kumar Verma',
-      email: 'rajesh.verma@example.in',
-      phone: '+91 9876543210',
-      account_status: 'active',
-    },
-    {
-      full_name: 'Sunita Joshi',
-      email: 'sunita.joshi@example.in',
-      phone: '+91 9822334455',
-      account_status: 'active',
-    },
-    {
-      full_name: 'Mohammed Irfan Khan',
-      email: 'irfan.khan@example.in',
-      phone: '+91 9717889900',
-      account_status: 'active',
-    },
-    {
-      full_name: 'Kavita Krishnan',
-      email: 'kavita.krishnan@example.in',
-      phone: '+91 9840122334',
-      account_status: 'active',
-    },
-    {
-      full_name: 'Deepak Agarwal',
-      email: 'deepak.agarwal@example.in',
-      phone: '+91 9829066778',
-      account_status: 'rejected',
-    },
+    { full_name: 'Rajesh Kumar Verma', email: 'rajesh.verma@example.in', phone: '+91 9876543210', account_status: 'active' },
+    { full_name: 'Sunita Joshi', email: 'sunita.joshi@example.in', phone: '+91 9822334455', account_status: 'active' },
+    { full_name: 'Mohammed Irfan Khan', email: 'irfan.khan@example.in', phone: '+91 9717889900', account_status: 'active' },
+    { full_name: 'Kavita Krishnan', email: 'kavita.krishnan@example.in', phone: '+91 9840122334', account_status: 'active' },
+    { full_name: 'Deepak Agarwal', email: 'deepak.agarwal@example.in', phone: '+91 9829066778', account_status: 'rejected' },
+    { full_name: 'Suman Mukherjee', email: 'suman.m@example.in', phone: '+91 9831122334', account_status: 'active' },
+    { full_name: 'Preeti Sengupta', email: 'preeti.s@example.in', phone: '+91 9832233445', account_status: 'active' },
   ];
 
   const patientIds = [];
   for (const p of samplePatients) {
+    const [existing] = await db.execute('SELECT user_id FROM users WHERE email = ?', [p.email]);
+    if (existing.length > 0) {
+      patientIds.push(existing[0].user_id);
+      continue;
+    }
     const [uRes] = await db.execute(
       `INSERT INTO users (username, full_name, email, phone, password_hash, role, account_status)
        VALUES (NULL, ?, ?, ?, ?, 'patient', ?)`,
@@ -249,9 +275,7 @@ export async function seedSamplePortalData(db) {
       location: 'Ansari Nagar, New Delhi',
       urgency: 'Emergency',
       status: 'Pending',
-      transitions: [
-        { old_status: null, new_status: 'Pending', changed_by: patientIds[0], remarks: 'Emergency trauma request submitted via portal' },
-      ],
+      remarks: 'Emergency trauma accident case — immediate O+ needed',
     },
     {
       patient_user_id: patientIds[1],
@@ -263,11 +287,8 @@ export async function seedSamplePortalData(db) {
       hospital_name: 'Ruby Hall Clinic',
       location: 'Sassoon Road, Pune',
       urgency: 'Urgent',
-      status: 'Approved',
-      transitions: [
-        { old_status: null, new_status: 'Pending', changed_by: patientIds[1], remarks: 'Request submitted for scheduled surgery' },
-        { old_status: 'Pending', new_status: 'Approved', changed_by: adminUserId, remarks: 'Cross-match approved; 1 unit A+ reserved' },
-      ],
+      status: 'Pending',
+      remarks: 'Scheduled cardiac bypass surgery requirement',
     },
     {
       patient_user_id: patientIds[2],
@@ -279,12 +300,8 @@ export async function seedSamplePortalData(db) {
       hospital_name: 'KEM Hospital',
       location: 'Parel, Mumbai',
       urgency: 'Emergency',
-      status: 'Fulfilled',
-      transitions: [
-        { old_status: null, new_status: 'Pending', changed_by: patientIds[2], remarks: 'Urgent ICU ward blood requisition' },
-        { old_status: 'Pending', new_status: 'Approved', changed_by: adminUserId, remarks: 'Verified hospital requisition slip' },
-        { old_status: 'Approved', new_status: 'Fulfilled', changed_by: adminUserId, remarks: 'All 3 units B+ issued to KEM blood bank counter' },
-      ],
+      status: 'Pending',
+      remarks: 'ICU dengue haemorrhagic fever support',
     },
     {
       patient_user_id: patientIds[3],
@@ -297,9 +314,33 @@ export async function seedSamplePortalData(db) {
       location: 'Greams Road, Chennai',
       urgency: 'Urgent',
       status: 'Pending',
-      transitions: [
-        { old_status: null, new_status: 'Pending', changed_by: patientIds[3], remarks: 'Rare AB- unit requested by Apollo haematology desk' },
-      ],
+      remarks: 'Rare AB- blood requisition for oncology ward',
+    },
+    {
+      patient_user_id: patientIds[5],
+      patient_name: 'Subrata Mukherjee',
+      requester_name: 'Suman Mukherjee',
+      phone: '+91 9831122334',
+      blood_group: 'O-',
+      units_required: 2,
+      hospital_name: 'SSKM Hospital',
+      location: 'Kolkata Medical Hub',
+      urgency: 'Emergency',
+      status: 'Pending',
+      remarks: 'Emergency obstetric postpartum haemorrhage support',
+    },
+    {
+      patient_user_id: patientIds[6],
+      patient_name: 'Nilanjana Sengupta',
+      requester_name: 'Preeti Sengupta',
+      phone: '+91 9832233445',
+      blood_group: 'B-',
+      units_required: 1,
+      hospital_name: 'CMRI Kolkata',
+      location: 'Alipore, Kolkata',
+      urgency: 'Normal',
+      status: 'Pending',
+      remarks: 'Elective gastrointestinal surgical preparation',
     },
     {
       patient_user_id: patientIds[0],
@@ -311,11 +352,8 @@ export async function seedSamplePortalData(db) {
       hospital_name: 'Safdarjung Hospital',
       location: 'Ring Road, New Delhi',
       urgency: 'Normal',
-      status: 'Rejected',
-      transitions: [
-        { old_status: null, new_status: 'Pending', changed_by: patientIds[0], remarks: 'Request submitted via LifeFlow portal' },
-        { old_status: 'Pending', new_status: 'Rejected', changed_by: adminUserId, remarks: 'Duplicate entry — already fulfilled by hospital blood bank' },
-      ],
+      status: 'Approved',
+      remarks: 'Cross-matched and reserved at blood bank counter',
     },
     {
       patient_user_id: patientIds[1],
@@ -328,26 +366,33 @@ export async function seedSamplePortalData(db) {
       location: 'Deccan Gymkhana, Pune',
       urgency: 'Normal',
       status: 'Approved',
-      transitions: [
-        { old_status: null, new_status: 'Pending', changed_by: patientIds[1], remarks: 'Elective orthopaedic procedure requirement' },
-        { old_status: 'Pending', new_status: 'Approved', changed_by: adminUserId, remarks: 'Approved for collection before 18:00 IST' },
-      ],
+      remarks: 'Approved for collection',
+    },
+    {
+      patient_user_id: patientIds[2],
+      patient_name: 'Salma Khan',
+      requester_name: 'Mohammed Irfan Khan',
+      phone: '+91 9717889900',
+      blood_group: 'AB+',
+      units_required: 2,
+      hospital_name: 'Tata Memorial Hospital',
+      location: 'Parel, Mumbai',
+      urgency: 'Urgent',
+      status: 'Fulfilled',
+      remarks: 'Units successfully dispensed to patient attendant',
     },
     {
       patient_user_id: patientIds[3],
       patient_name: 'Nitin Kulkarni',
       requester_name: 'Kavita Krishnan',
       phone: '+91 9840122334',
-      blood_group: 'AB+',
+      blood_group: 'A-',
       units_required: 1,
       hospital_name: 'Manipal Hospital',
       location: 'HAL Old Airport Road, Bengaluru',
       urgency: 'Normal',
       status: 'Fulfilled',
-      transitions: [
-        { old_status: null, new_status: 'Pending', changed_by: patientIds[3], remarks: 'Request submitted via LifeFlow portal' },
-        { old_status: 'Pending', new_status: 'Fulfilled', changed_by: adminUserId, remarks: '1 unit AB+ dispatched and acknowledged' },
-      ],
+      remarks: 'Transfusion completed successfully',
     },
   ];
 
@@ -370,11 +415,18 @@ export async function seedSamplePortalData(db) {
       ]
     );
     const requestId = reqRes.insertId;
-    for (const tr of r.transitions) {
+
+    await db.execute(
+      `INSERT INTO request_history (request_id, old_status, new_status, changed_by, remarks)
+       VALUES (?, NULL, 'Pending', ?, ?)`,
+      [requestId, r.patient_user_id, 'Request submitted via LifeFlow portal']
+    );
+
+    if (r.status !== 'Pending') {
       await db.execute(
         `INSERT INTO request_history (request_id, old_status, new_status, changed_by, remarks)
-         VALUES (?, ?, ?, ?, ?)`,
-        [requestId, tr.old_status, tr.new_status, tr.changed_by, tr.remarks]
+         VALUES (?, 'Pending', ?, ?, ?)`,
+        [requestId, r.status, adminUserId, r.remarks]
       );
     }
   }
