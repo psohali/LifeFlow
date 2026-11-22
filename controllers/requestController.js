@@ -162,12 +162,15 @@ export async function updateRequestStatus(req, res) {
     const bloodGroup = rows[0].blood_group;
     const unitsRequired = Number(rows[0].units_required || 0);
 
-    if (oldStatus !== 'Fulfilled' && nextStatus === 'Fulfilled') {
+    const wasHolding = oldStatus === 'Approved' || oldStatus === 'Fulfilled';
+    const isHolding = nextStatus === 'Approved' || nextStatus === 'Fulfilled';
+
+    if (!wasHolding && isHolding) {
       await db.execute(
         'UPDATE blood_inventory SET units_available = CASE WHEN units_available >= ? THEN units_available - ? ELSE 0 END WHERE blood_group = ?',
         [unitsRequired, unitsRequired, bloodGroup]
       );
-    } else if (oldStatus === 'Fulfilled' && nextStatus !== 'Fulfilled') {
+    } else if (wasHolding && !isHolding) {
       await db.execute(
         'UPDATE blood_inventory SET units_available = units_available + ? WHERE blood_group = ?',
         [unitsRequired, bloodGroup]
