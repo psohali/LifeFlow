@@ -2093,7 +2093,13 @@ async function initAdminDashboard(bearerToken = null) {
             throw new Error(patchData.message || 'Failed to update status.');
           }
           showAlert('dashboardAlert', 'success', patchData.message);
-          await Promise.all([loadStats(), loadRequests(), loadHistory(), loadSecurityOverview()]);
+          await Promise.all([
+            loadStats(),
+            loadRequests(),
+            loadHistory(),
+            loadSecurityOverview(),
+            loadInventoryManager(),
+          ]);
         } catch (err) {
           showAlert('dashboardAlert', 'error', err.message);
         } finally {
